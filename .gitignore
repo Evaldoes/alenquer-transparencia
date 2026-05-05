@@ -1,0 +1,41 @@
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Credenciais e variáveis de ambiente
+.env
+*.env
+
+# Dados gerados em runtime
+dados/historico.db
+dados/*.db
+dados/*.pdf
+dados/tse_cache/
+resultados_monitor.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs e temporários
+*.log
+*.tmp
+*.bak
+
+# Pasta static vazia (mantém estrutura)
+!static/.gitkeep
