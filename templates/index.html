@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transparência — Alenquer/PA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css"/>
+  <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <style>
+    /* ── Design Tokens ──────────────────────────────────────────────────────── */
+    :root {
+      --c-primary:        #16a34a;
+      --c-primary-hover:  #15803d;
+      --c-primary-light:  #dcfce7;
+      --c-primary-xlight: #f0fdf4;
+      --c-danger:         #ef4444;
+      --c-danger-light:   #fef2f2;
+      --c-warning:        #f59e0b;
+      --c-warning-light:  #fffbeb;
+      --c-info:           #3b82f6;
+      --c-info-light:     #eff6ff;
+
+      --c-bg:             #f1f5f9;
+      --c-surface:        #ffffff;
+      --c-surface-hover:  #f8fafc;
+      --c-border:         #e2e8f0;
+      --c-border-strong:  #cbd5e1;
+
+      --c-text:           #0f172a;
+      --c-text-muted:     #64748b;
+      --c-text-faint:     #94a3b8;
+
+      --c-sidebar-bg:     #0f172a;
+      --c-sidebar-hover:  rgba(255,255,255,.06);
+      --c-sidebar-active: rgba(22,163,74,.18);
+      --c-sidebar-text:   #94a3b8;
+      --c-sidebar-active-text: #4ade80;
+
+      --radius-sm:   6px;
+      --radius-md:   10px;
+      --radius-lg:   14px;
+      --radius-xl:   18px;
+
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+      --shadow-md:   0 4px 12px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.05);
+      --shadow-lg:   0 10px 30px rgba(0,0,0,.1);
+
+      --sidebar-w:   240px;
+      --topbar-h:    64px;
+      --font:        'Inter', 'Segoe UI', sans-serif;
+    }
+
+    /* ── Reset ──────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--c-bg); color: var(--c-text); min-height: 100vh; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ── App Layout ─────────────────────────────────────────────────────────── */
+    .app { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ────────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--c-sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      flex-shrink: 0;
+    }
+    .sidebar-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--c-primary);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .sidebar-logo-text { line-height: 1.2; }
+    .sidebar-logo-text strong { color: #fff; font-size: .88rem; font-weight: 700; display: block; }
+    .sidebar-logo-text span { color: var(--c-sidebar-text); font-size: .72rem; }
+
+    .sidebar-nav { padding: 12px 10px; flex: 1; }
+    .nav-group { margin-bottom: 6px; }
+    .nav-group-label {
+      font-size: .65rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.3);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 10px 10px 4px;
+    }
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--c-sidebar-text);
+      font-size: .83rem;
+      font-weight: 500;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .nav-tab:hover { background: var(--c-sidebar-hover); color: #e2e8f0; }
+    .nav-tab.ativa { background: var(--c-sidebar-active); color: var(--c-sidebar-active-text); font-weight: 600; }
+    .nav-tab .nav-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .nav-tab .nav-icon svg { width: 16px; height: 16px; stroke-width: 1.75; }
+    .btn-icon { width: 14px; height: 14px; stroke-width: 2; }
+    .btn-icon svg { width: 14px; height: 14px; }
+    .logo-icon svg { width: 18px; height: 18px; color: #fff; }
+
+
+    /* ── Content area ───────────────────────────────────────────────────────── */
+    .content {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────────────────────────── */
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      gap: 16px;
+    }
+    .topbar-title h1 { font-size: 1.1rem; font-weight: 700; color: var(--c-text); }
+    .topbar-title p  { font-size: .72rem; color: var(--c-text-muted); margin-top: 1px; }
+    .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+    /* ── Buttons ────────────────────────────────────────────────────────────── */
+    .btn {
+      background: var(--c-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 8px 18px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, box-shadow .15s;
+      font-family: var(--font);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover    { background: var(--c-primary-hover); box-shadow: var(--shadow-sm); }
+    .btn:disabled { background: var(--c-text-faint); cursor: not-allowed; }
+    .btn-sm       { padding: 5px 12px; font-size: .76rem; }
+    .btn-outline  { background: transparent; color: var(--c-text); border: 1px solid var(--c-border); }
+    .btn-outline:hover { background: var(--c-surface-hover); }
+    .btn-cinza    { background: #64748b; }
+    .btn-cinza:hover { background: #475569; }
+    .btn-vermelho { background: var(--c-danger); }
+    .btn-vermelho:hover { background: #dc2626; }
+
+    /* ── Main ───────────────────────────────────────────────────────────────── */
+    main { padding: 28px; flex: 1; }
+    .pagina { display: none; }
+    .pagina.ativa { display: block; }
+
+    /* ── Page header ────────────────────────────────────────────────────────── */
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-size: 1.4rem; font-weight: 700; color: var(--c-text); }
+    .page-header p  { font-size: .82rem; color: var(--c-text-muted); margin-top: 4px; }
+
+    /* ── Aviso ──────────────────────────────────────────────────────────────── */
+    .aviso {
+      background: var(--c-primary-xlight);
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 22px;
+      font-size: .82rem;
+      color: #166534;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .aviso::before { content: 'ℹ'; font-weight: 700; flex-shrink: 0; }
+    .aviso a { color: var(--c-primary-hover); font-weight: 600; text-decoration: underline; }
+
+    /* ── Section label ──────────────────────────────────────────────────────── */
+    .section-label {
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin: 0 0 12px;
+    }
+
+    /* ── Cards ──────────────────────────────────────────────────────────────── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .15s;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card .label {
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
+    }
+    .card .valor { font-size: 1.6rem; font-weight: 800; color: var(--c-text); line-height: 1; }
+    .card .sub   { font-size: .73rem; color: var(--c-text-faint); margin-top: 6px; }
+    .card .valor-up   { color: var(--c-primary); }
+    .card .valor-down { color: var(--c-danger); }
+    .card .valor-warn { color: var(--c-warning); }
+    .card-accent { border-top: 3px solid var(--c-primary); }
+
+    /* ── Panel ──────────────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 0;
+    }
+    .panel h2 {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--c-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .panel h2::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--c-primary); border-radius: 2px; }
+
+    /* ── Grid ───────────────────────────────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* ── Table ──────────────────────────────────────────────────────────────── */
+    .tabela { width: 100%; border-collapse: collapse; font-size: .79rem; }
+    .tabela th {
+      text-align: left;
+      color: var(--c-text-muted);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--c-border);
+      font-weight: 600;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: #f8fafc;
+    }
+    .tabela td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; color: var(--c-text); }
+    .tabela tr:last-child td { border-bottom: none; }
+    .tabela tr:hover td { background: #f8fafc; }
+    .valor-verde { color: var(--c-primary); font-weight: 700; }
+
+    /* ── Loading ────────────────────────────────────────────────────────────── */
+    .loading {
+      text-align: center;
+      color: var(--c-text-faint);
+      padding: 32px;
+      font-size: .84rem;
+    }
+
+    /* ── Badge / pill ───────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 99px;
+      font-size: .7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-green  { background: var(--c-primary-light); color: #15803d; }
+    .badge-red    { background: var(--c-danger-light);  color: #b91c1c; }
+    .badge-yellow { background: var(--c-warning-light); color: #92400e; }
+    .badge-blue   { background: var(--c-info-light);    color: #1e40af; }
+    .badge-gray   { background: #f1f5f9; color: var(--c-text-muted); }
+
+    /* ── Monitor de risco ───────────────────────────────────────────────────── */
+    .resumo-monitor { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .resumo-monitor .card .valor { font-size: 2.2rem; }
+
+    .risco-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      border-left: 4px solid var(--c-border);
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .15s;
+    }
+    .risco-card:hover { box-shadow: var(--shadow-md); }
+    .risco-card.alto  { border-left-color: var(--c-danger); }
+    .risco-card.medio { border-left-color: var(--c-warning); }
+    .risco-card.baixo { border-left-color: var(--c-primary); }
+    .risco-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 7px; }
+    .risco-empresa { font-weight: 700; font-size: .9rem; color: var(--c-text); }
+    .risco-objeto  { font-size: .75rem; color: var(--c-text-muted); margin-top: 2px; }
+    .badge-score   { font-size: .88rem; font-weight: 800; padding: 4px 14px; border-radius: 99px; white-space: nowrap; }
+    .badge-alto    { background: var(--c-danger-light);  color: var(--c-danger); }
+    .badge-medio   { background: var(--c-warning-light); color: #92400e; }
+    .badge-baixo   { background: var(--c-primary-light); color: #15803d; }
+    .risco-detalhes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; font-size: .74rem; color: var(--c-text-muted); }
+    .risco-detalhes span { background: #f1f5f9; padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--c-border); }
+    .flags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .flag  { font-size: .71rem; padding: 2px 9px; border-radius: var(--radius-sm); background: var(--c-danger-light); color: var(--c-danger); border: 1px solid #fecaca; }
+    .sancao { background: var(--c-danger-light); color: var(--c-danger); border: 1px solid #fecaca; padding: 3px 10px; border-radius: var(--radius-sm); font-size: .75rem; font-weight: 700; margin-top: 8px; display: inline-block; }
+    .conflitos-bloco { margin-top: 8px; background: var(--c-warning-light); border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 9px 12px; font-size: .79rem; color: #78350f; }
+    .socios-lista { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+    .socio-tag { background: var(--c-info-light); color: var(--c-info); padding: 2px 9px; border-radius: var(--radius-sm); border: 1px solid #bfdbfe; font-size: .73rem; }
+
+    /* ── Grafo ──────────────────────────────────────────────────────────────── */
+    #grafo-container { width: 100%; height: 520px; background: #f8fafc; border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+    .grafo-legenda   { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; font-size: .77rem; color: var(--c-text-muted); }
+    .legenda-item    { display: flex; align-items: center; gap: 6px; }
+    .legenda-dot     { width: 11px; height: 11px; border-radius: 50%; }
+
+    /* ── Notícias ───────────────────────────────────────────────────────────── */
+    .noticia-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; transition: border-color .15s, box-shadow .15s; }
+    .noticia-card:hover { border-color: var(--c-primary); box-shadow: var(--shadow-sm); }
+    .noticia-titulo   { font-size: .88rem; font-weight: 600; color: var(--c-text); margin-bottom: 4px; }
+    .noticia-titulo a { color: var(--c-primary-hover); }
+    .noticia-titulo a:hover { text-decoration: underline; }
+    .noticia-meta   { font-size: .73rem; color: var(--c-text-faint); }
+    .noticia-resumo { font-size: .79rem; color: var(--c-text-muted); margin-top: 6px; line-height: 1.5; }
+
+    /* ── IA ─────────────────────────────────────────────────────────────────── */
+    .ia-card    { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+    .ia-score   { display: inline-block; padding: 3px 12px; border-radius: 99px; font-size: .78rem; font-weight: 700; margin-bottom: 8px; }
+    .ia-score-alto  { background: var(--c-danger-light);  color: var(--c-danger); }
+    .ia-score-medio { background: var(--c-warning-light); color: #92400e; }
+    .ia-score-baixo { background: var(--c-primary-light); color: #15803d; }
+    .ia-parecer { font-size: .86rem; color: var(--c-text); line-height: 1.65; margin-bottom: 8px; }
+    .ia-rec     { font-size: .8rem; color: var(--c-warning); font-style: italic; }
+    .ia-tag     { display: inline-block; background: var(--c-primary-light); color: #15803d; border: 1px solid #bbf7d0; padding: 2px 8px; border-radius: var(--radius-sm); font-size: .71rem; margin: 2px; }
+
+    /* ── Municípios ─────────────────────────────────────────────────────────── */
+    .municipio-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--c-surface); border-radius: var(--radius-md); margin-bottom: 8px; border: 1px solid var(--c-border); border-left: 4px solid var(--c-border); transition: box-shadow .12s; }
+    .municipio-row:hover { box-shadow: var(--shadow-sm); }
+    .municipio-row.destaque { border-left-color: var(--c-primary); background: var(--c-primary-xlight); }
+    .municipio-nome  { font-weight: 600; font-size: .88rem; }
+    .municipio-stats { display: flex; gap: 14px; font-size: .77rem; color: var(--c-text-muted); flex-wrap: wrap; }
+    .bar-container   { width: 110px; background: #e2e8f0; border-radius: 4px; height: 6px; overflow: hidden; }
+    .bar-fill        { height: 100%; border-radius: 4px; transition: width .5s; }
+
+    /* ── Formulário ─────────────────────────────────────────────────────────── */
+    .denuncia-form { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); }
+    .form-group    { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: .79rem; color: var(--c-text-muted); margin-bottom: 6px; font-weight: 600; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      color: var(--c-text);
+      font-size: .84rem;
+      font-family: var(--font);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+    .form-group textarea { height: 90px; resize: vertical; }
+    .denuncia-lista   { margin-top: 22px; }
+    .denuncia-item    { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; }
+    .denuncia-data    { font-size: .71rem; color: var(--c-text-faint); }
+    .denuncia-texto   { font-size: .84rem; color: var(--c-text); margin-top: 4px; }
+    .badge-nova       { background: var(--c-primary-light); color: #15803d; padding: 2px 8px; border-radius: 99px; font-size: .69rem; font-weight: 600; }
+
+    /* ── Boletim ────────────────────────────────────────────────────────────── */
+    .boletim-resumo { background: var(--c-primary-xlight); border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; font-size: .88rem; line-height: 1.7; color: #166534; }
+    .boletim-resumo strong { color: var(--c-primary-hover); }
+
+    /* ── Copy-paste ─────────────────────────────────────────────────────────── */
+    .cp-card    { background: var(--c-surface); border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+    .cp-sim     { font-size: 1.25rem; font-weight: 800; color: var(--c-danger); margin-bottom: 8px; }
+    .cp-empresa { font-size: .81rem; font-weight: 600; color: var(--c-text); margin-bottom: 3px; }
+    .cp-objeto  { font-size: .76rem; color: var(--c-text-muted); font-style: italic; }
+    .cp-vs      { text-align: center; color: var(--c-danger); font-weight: 700; padding: 4px 0; }
+
+    /* ── PNCP ───────────────────────────────────────────────────────────────── */
+    .pncp-tag { background: var(--c-info-light); color: var(--c-info); border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: var(--radius-sm); font-size: .71rem; margin-right: 4px; }
+
+    /* ── Empresas ───────────────────────────────────────────────────────────── */
+    .emp-card  { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow-sm); }
+    .emp-score { font-size: 1.4rem; font-weight: 800; min-width: 52px; text-align: center; }
+    .emp-nome  { font-size: .87rem; font-weight: 600; color: var(--c-text); }
+    .emp-delta { font-size: .79rem; font-weight: 700; }
+    .emp-delta.up     { color: var(--c-danger); }
+    .emp-delta.down   { color: var(--c-primary); }
+    .emp-delta.stable { color: var(--c-text-faint); }
+    .emp-trend { font-size: .71rem; color: var(--c-text-faint); margin-top: 2px; }
+
+    /* ── Obras ──────────────────────────────────────────────────────────────── */
+    .obra-card       { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow-sm); }
+    .obra-nome       { font-size: .87rem; font-weight: 600; color: var(--c-text); }
+    .obra-meta       { font-size: .75rem; color: var(--c-text-muted); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .obra-status     { padding: 2px 9px; border-radius: 99px; font-size: .71rem; font-weight: 600; }
+    .obra-status.concluida  { background: var(--c-primary-light); color: #15803d; }
+    .obra-status.execucao   { background: var(--c-warning-light); color: #92400e; }
+    .obra-status.paralisada { background: var(--c-danger-light);  color: var(--c-danger); }
+
+    /* ── TSE ────────────────────────────────────────────────────────────────── */
+    .tse-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow-sm); }
+    .tse-roi  { font-size: 1.35rem; font-weight: 800; color: var(--c-danger); white-space: nowrap; }
+
+    /* ── Benchmark ──────────────────────────────────────────────────────────── */
+    .bmark-row { display: flex; align-items: center; padding: 10px 14px; background: var(--c-surface); border-radius: var(--radius-md); margin-bottom: 8px; border: 1px solid var(--c-border); border-left: 4px solid var(--c-border); gap: 12px; box-shadow: var(--shadow-sm); }
+    .bmark-row.destaque { border-left-color: var(--c-warning); background: var(--c-warning-light); }
+
+    /* ── Agendamento ────────────────────────────────────────────────────────── */
+    .cron-card { background: #f8fafc; border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--c-text-muted); overflow-x: auto; margin-top: 10px; }
+
+    /* ── Vis / Timeline ─────────────────────────────────────────────────────── */
+    #sankey-container   { width: 100%; min-height: 420px; background: #f8fafc; border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+    #timeline-container { width: 100%; min-height: 380px; background: #f8fafc; border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+    .vis-timeline       { background: #f8fafc !important; border: none !important; }
+    .vis-item           { border-radius: var(--radius-sm); font-size: .74rem; }
+    .vis-item.alto      { background: var(--c-danger-light); border-color: var(--c-danger); color: var(--c-danger); }
+    .vis-item.medio     { background: var(--c-warning-light); border-color: var(--c-warning); color: #92400e; }
+    .vis-item.baixo     { background: var(--c-primary-light); border-color: var(--c-primary); color: #15803d; }
+    .vis-label          { color: var(--c-text-muted); font-size: .77rem; }
+    .vis-grid.vis-minor { border-color: #f1f5f9; }
+    .vis-grid.vis-major { border-color: var(--c-border); }
+    .vis-time-axis .vis-text { color: var(--c-text-faint); font-size: .74rem; }
+
+    /* ── Loading spinner ────────────────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+
+    .spinner {
+      display: inline-block;
+      width: 28px; height: 28px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    .loading {
+      text-align: center;
+      color: var(--c-text-faint);
+      padding: 32px 20px;
+      font-size: .84rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .loading.is-loading::before {
+      content: '';
+      display: block;
+      width: 28px; height: 28px;
+      border: 3px solid var(--c-border);
+      border-top-color: var(--c-primary);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    .loading-text { color: var(--c-text-faint); font-size: .83rem; }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 400px 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: var(--radius-sm);
+    }
+    .sk-line  { height: 14px; margin-bottom: 8px; }
+    .sk-card  { height: 80px; border-radius: var(--radius-lg); margin-bottom: 12px; }
+
+    /* ── Inputs/select (light theme) ────────────────────────────────────────── */
+    select, input[type=text], input[type=email], input[type=password] {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      color: var(--c-text);
+      font-family: var(--font);
+    }
+    select { padding: 8px 12px; font-size: .84rem; cursor: pointer; }
+    select:focus { outline: none; border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
+
+    /* ── Status chip ────────────────────────────────────────────────────────── */
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+    .chip-green  { background: var(--c-primary-light); color: #15803d; }
+    .chip-yellow { background: var(--c-warning-light); color: #92400e; }
+    .chip-red    { background: var(--c-danger-light);  color: #b91c1c; }
+    .chip-blue   { background: var(--c-info-light);    color: #1e40af; }
+    .chip-gray   { background: #f1f5f9; color: var(--c-text-muted); }
+
+    /* ── Empty state ────────────────────────────────────────────────────────── */
+    .empty-state { text-align: center; padding: 48px 20px; }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: .4; }
+    .empty-state h3   { font-size: .95rem; font-weight: 600; color: var(--c-text-muted); margin-bottom: 6px; }
+    .empty-state p    { font-size: .82rem; color: var(--c-text-faint); }
+
+    /* ── Alert inline ───────────────────────────────────────────────────────── */
+    .alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--radius-md); font-size: .82rem; margin-bottom: 10px; align-items: flex-start; }
+    .alert-red    { background: var(--c-danger-light);  color: #b91c1c; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 8px 12px; }
+    .alert-yellow { background: var(--c-warning-light); color: #92400e; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 8px 12px; }
+    .alert-green  { background: var(--c-primary-light); color: #15803d; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 8px 12px; }
+    .alert-icon   { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Grafo container ────────────────────────────────────────────────────── */
+    #grafo-container { background: #fafbfc; }
+
+    /* ── Scrollbar global ───────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--c-border-strong); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--c-text-faint); }
+  </style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ SIDEBAR ═══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon logo-icon"><i data-lucide="landmark"></i></div>
+    <div class="sidebar-logo-text">
+      <strong>Alenquer</strong>
+      <span>Transparência / PA</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Visão Geral</div>
+      <div class="nav-tab ativa" onclick="aba('dados',this)"><i data-lucide="bar-chart-2" class="nav-icon"></i>Dados Gerais</div>
+      <div class="nav-tab" onclick="aba('risco',this)"><i data-lucide="shield-alert" class="nav-icon"></i>Monitor de Risco</div>
+      <div class="nav-tab" onclick="aba('saude',this)"><i data-lucide="activity" class="nav-icon"></i>Saúde</div>
+      <div class="nav-tab" onclick="aba('emprego',this)"><i data-lucide="briefcase" class="nav-icon"></i>Emprego</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Fiscalização</div>
+      <div class="nav-tab" onclick="aba('copypaste',this)"><i data-lucide="copy" class="nav-icon"></i>Copy-Paste</div>
+      <div class="nav-tab" onclick="aba('semantico',this)"><i data-lucide="cpu" class="nav-icon"></i>Semântico</div>
+      <div class="nav-tab" onclick="aba('tse',this)"><i data-lucide="landmark" class="nav-icon"></i>TSE</div>
+      <div class="nav-tab" onclick="aba('cnj',this)"><i data-lucide="scale" class="nav-icon"></i>CNJ</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Dados</div>
+      <div class="nav-tab" onclick="aba('pncp',this)"><i data-lucide="building-2" class="nav-icon"></i>PNCP</div>
+      <div class="nav-tab" onclick="aba('empresas',this)"><i data-lucide="trending-up" class="nav-icon"></i>Empresas</div>
+      <div class="nav-tab" onclick="aba('municipios',this)"><i data-lucide="map-pin" class="nav-icon"></i>Municípios</div>
+      <div class="nav-tab" onclick="aba('benchmark',this)"><i data-lucide="bar-chart" class="nav-icon"></i>Benchmark</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Visualização</div>
+      <div class="nav-tab" onclick="aba('grafo',this)"><i data-lucide="network" class="nav-icon"></i>Rede</div>
+      <div class="nav-tab" onclick="aba('mapa',this)"><i data-lucide="map" class="nav-icon"></i>Mapa de Obras</div>
+      <div class="nav-tab" onclick="aba('sankey',this)"><i data-lucide="git-merge" class="nav-icon"></i>Fluxo</div>
+      <div class="nav-tab" onclick="aba('timeline',this)"><i data-lucide="calendar" class="nav-icon"></i>Timeline</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Comunicação</div>
+      <div class="nav-tab" onclick="aba('ia',this)"><i data-lucide="bot" class="nav-icon"></i>IA</div>
+      <div class="nav-tab" onclick="aba('noticias',this)"><i data-lucide="newspaper" class="nav-icon"></i>Notícias</div>
+      <div class="nav-tab" onclick="aba('denuncia',this)"><i data-lucide="flag" class="nav-icon"></i>Denúncia</div>
+      <div class="nav-tab" onclick="aba('boletim',this)"><i data-lucide="file-text" class="nav-icon"></i>Boletim</div>
+      <div class="nav-tab" onclick="aba('agendamento',this)"><i data-lucide="clock" class="nav-icon"></i>Agendamento</div>
+    </div>
+  </nav>
+
+
+</aside>
+
+<!-- ══ CONTENT ════════════════════════════════════════════════════════════════ -->
+<div class="content">
+
+<header class="topbar">
+  <div class="topbar-title">
+    <h1 id="topbar-page-title">Dados Gerais</h1>
+    <p>IBGE 1500404 · Portal da Transparência · Dados federais públicos</p>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-outline btn-sm" onclick="carregar()"><i data-lucide="refresh-cw" class="btn-icon"></i> Atualizar</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ══ DADOS GERAIS ══════════════════════════════════════════════════════════ -->
+<div id="pagina-dados" class="pagina ativa">
+  <p class="section-label">Benefícios Sociais — Mês Atual</p>
+  <div class="cards">
+    <div class="card"><div class="label">Bolsa Família — Beneficiários</div>
+      <div class="valor" id="bf-benef">—</div><div class="sub" id="bf-mes">Aguardando token</div></div>
+    <div class="card"><div class="label">Bolsa Família — Valor Total</div>
+      <div class="valor" id="bf-valor">—</div><div class="sub">Último mês</div></div>
+    <div class="card"><div class="label">BPC — Beneficiários</div>
+      <div class="valor" id="bpc-benef">—</div><div class="sub" id="bpc-sub">Benefício de Prestação Continuada</div></div>
+    <div class="card"><div class="label">BPC — Valor Total</div>
+      <div class="valor" id="bpc-valor">—</div><div class="sub">Mensal</div></div>
+    <div class="card"><div class="label">Seguro Defeso — Pescadores</div>
+      <div class="valor" id="sd-benef">—</div><div class="sub" id="sd-sub">Beneficiários</div></div>
+    <div class="card"><div class="label">Seguro Defeso — Valor</div>
+      <div class="valor" id="sd-valor">—</div><div class="sub">Mensal</div></div>
+  </div>
+
+  <p class="section-label" style="margin-top:18px">Convênios Federais</p>
+  <div class="cards">
+    <div class="card"><div class="label">Total Convênios</div>
+      <div class="valor" id="conv-total">—</div><div class="sub">Todos os registros</div></div>
+    <div class="card"><div class="label">Valor Total Contratado</div>
+      <div class="valor" id="conv-valor" style="font-size:1rem">—</div><div class="sub">Soma histórica</div></div>
+    <div class="card"><div class="label">Valor Liberado</div>
+      <div class="valor" id="conv-liberado" style="font-size:1rem">—</div><div class="sub">Efetivamente transferido</div></div>
+    <div class="card"><div class="label">Execução</div>
+      <div class="valor" id="conv-exec">—</div><div class="sub">Liberado / Contratado</div></div>
+    <div class="card"><div class="label">Transferências Federais</div>
+      <div class="valor" id="transf-total">—</div><div class="sub" id="transf-ano">12 meses</div></div>
+    <div class="card"><div class="label">Total Social (mês)</div>
+      <div class="valor" id="social-total" style="font-size:1rem">—</div><div class="sub">BF + BPC + Defeso</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel"><h2>Bolsa Família — Beneficiários (12 meses)</h2><canvas id="chart-bf" height="180"></canvas></div>
+    <div class="panel"><h2>Bolsa Família — Valor Pago (12 meses)</h2><canvas id="chart-valor" height="180"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>BPC — Evolução Mensal</h2><canvas id="chart-bpc" height="180"></canvas></div>
+    <div class="panel"><h2>Seguro Defeso — Pescadores</h2><canvas id="chart-defeso" height="180"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Convênios por Ministério (Top 10)</h2><canvas id="chart-conv-min" height="220"></canvas></div>
+    <div class="panel"><h2>Convênios por Situação</h2><canvas id="chart-conv-sit" height="220"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Evolução Histórica dos Convênios (por ano)</h2><canvas id="chart-conv-ano" height="180"></canvas></div>
+    <div class="panel"><h2>Top Convênios por Valor</h2><div id="tabela-top-conv"><div class="loading">Aguardando token...</div></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Transferências BF (12 meses)</h2><div id="tabela-transf"><div class="loading">Aguardando token...</div></div></div>
+    <div class="panel"><h2>Despesas por Ministério</h2><div id="tabela-desp"><div class="loading">Aguardando token...</div></div></div>
+  </div>
+</div>
+
+<!-- ══ MONITOR DE RISCO ══════════════════════════════════════════════════════ -->
+<div id="pagina-risco" class="pagina">
+  <div class="resumo-monitor">
+    <div class="card"><div class="label">Analisados</div><div class="valor" id="mon-total" style="color:var(--c-text-muted)">—</div></div>
+    <div class="card"><div class="label">Alto Risco</div><div class="valor" id="mon-alto" style="color:var(--c-danger)">—</div></div>
+    <div class="card"><div class="label">Médio Risco</div><div class="valor" id="mon-medio" style="color:var(--c-warning)">—</div></div>
+    <div class="card"><div class="label">Última Análise</div><div class="valor" id="mon-data" style="color:var(--c-text-muted);font-size:.9rem">—</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:18px"><h2>Histórico de Análises</h2><canvas id="chart-historico" height="120"></canvas></div>
+  <div id="lista-risco"><div class="loading is-loading">Carregando...</div></div>
+</div>
+
+<!-- ══ COPY-PASTE ════════════════════════════════════════════════════════════ -->
+<div id="pagina-copypaste" class="pagina">
+  <div class="cards" id="cp-resumo">
+    <div class="card"><div class="label">Pares Suspeitos</div><div class="valor" id="cp-pares" style="color:var(--c-danger)">—</div></div>
+    <div class="card"><div class="label">Grupos (Clusters)</div><div class="valor" id="cp-clusters" style="color:var(--c-warning)">—</div></div>
+    <div class="card"><div class="label">Maior Similaridade</div><div class="valor" id="cp-max" style="color:var(--c-warning)">—</div></div>
+  </div>
+  <div id="lista-copypaste"><div class="loading is-loading">Carregando análise de copy-paste...</div></div>
+</div>
+
+<!-- ══ PNCP ══════════════════════════════════════════════════════════════════ -->
+<div id="pagina-pncp" class="pagina">
+  <div class="cards" id="pncp-cards">
+    <div class="card"><div class="label">Contratações</div><div class="valor" id="pncp-total">—</div></div>
+    <div class="card"><div class="label">Valor Total</div><div class="valor" id="pncp-valor" style="font-size:1.1rem">—</div></div>
+    <div class="card"><div class="label">Sem Licitação</div><div class="valor" id="pncp-disp" style="color:var(--c-danger)">—</div></div>
+  </div>
+  <div class="panel"><h2>Contratações Recentes — PNCP</h2>
+    <div id="tabela-pncp"><div class="loading is-loading">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- ══ EMPRESAS ══════════════════════════════════════════════════════════════ -->
+<div id="pagina-empresas" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Empresas Rastreadas</div><div class="valor" id="emp-total">—</div></div>
+    <div class="card"><div class="label">Alto Risco</div><div class="valor" id="emp-alto" style="color:var(--c-danger)">—</div></div>
+    <div class="card"><div class="label">Score Crescendo</div><div class="valor" id="emp-alta" style="color:var(--c-warning)">—</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Empresas em Alta</h2>
+      <div id="lista-emp-alta"><div class="loading is-loading">Carregando...</div></div>
+    </div>
+    <div class="panel"><h2>Ranking Histórico</h2>
+      <div id="lista-emp-ranking"><div class="loading is-loading">Carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAPA DE OBRAS ════════════════════════════════════════════════════════ -->
+<div id="pagina-mapa" class="pagina">
+  <div id="mapa-container" style="width:100%;height:500px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--c-border);margin-bottom:16px"></div>
+  <div class="panel"><h2>Lista de Obras</h2>
+    <div id="lista-obras"><div class="loading">Aguardando token para carregar obras...</div></div>
+  </div>
+</div>
+
+<!-- ══ GRAFO ══════════════════════════════════════════════════════════════════ -->
+<div id="pagina-grafo" class="pagina">
+  <div class="cards" id="grafo-metricas">
+    <div class="card"><div class="label">Total de Nós</div><div class="valor" id="g-nos">—</div></div>
+    <div class="card"><div class="label">Empresas</div><div class="valor" id="g-emp">—</div></div>
+    <div class="card"><div class="label">Pessoas</div><div class="valor" id="g-pes">—</div></div>
+    <div class="card"><div class="label">Grupos Conectados</div><div class="valor" id="g-grupos">—</div></div>
+  </div>
+  <div class="grafo-legenda">
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--c-danger)"></span>Empresa alto risco</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--c-warning)"></span>Empresa médio risco</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--c-primary)"></span>Empresa baixo risco</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--c-info)"></span>Sócio / Pessoa</span>
+  </div>
+  <div id="grafo-container"></div>
+</div>
+
+<!-- ══ MUNICÍPIOS ════════════════════════════════════════════════════════════ -->
+<div id="pagina-municipios" class="pagina">
+  <button class="btn" onclick="compararMunicipios()" style="margin-bottom:18px">Comparar Municípios</button>
+  <div id="lista-municipios"><div class="loading">Clique em "Comparar Municípios" para iniciar.</div></div>
+</div>
+
+<!-- ══ ANÁLISE IA ════════════════════════════════════════════════════════════ -->
+<div id="pagina-ia" class="pagina">
+  <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+    <input type="password" id="anthropic-key" placeholder="Chave da API da Anthropic (sk-ant-...)"
+      style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:8px 14px;
+             color:var(--c-text);font-size:.85rem;flex:1;min-width:260px"/>
+    <button class="btn" onclick="analisarIA()">Analisar com IA</button>
+  </div>
+  <div id="ia-resumo" style="display:none" class="boletim-resumo"></div>
+  <div id="ia-analises"><div class="loading">Cole sua chave Anthropic e clique em Analisar.</div></div>
+</div>
+
+<!-- ══ NOTÍCIAS ══════════════════════════════════════════════════════════════ -->
+<div id="pagina-noticias" class="pagina">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <h2 style="color:var(--c-text-muted);font-size:.95rem;text-transform:uppercase">Notícias sobre Alenquer e Transparência no Pará</h2>
+    <button class="btn btn-sm" onclick="atualizarNoticias()"><i data-lucide="refresh-cw" class="btn-icon"></i> Atualizar</button>
+  </div>
+  <div id="lista-noticias"><div class="loading is-loading">Carregando notícias...</div></div>
+</div>
+
+<!-- ══ DENÚNCIA ══════════════════════════════════════════════════════════════ -->
+<div id="pagina-denuncia" class="pagina">
+  <div class="grid-2">
+    <div class="denuncia-form">
+      <h2 class="panel" style="background:none;border:none;padding:0;margin-bottom:16px">Nova Denúncia</h2>
+      <div class="form-group">
+        <label>Descrição da irregularidade *</label>
+        <textarea id="den-desc" placeholder="Descreva o que você observou..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Local (opcional)</label>
+        <input type="text" id="den-local" placeholder="Rua, bairro ou ponto de referência"/>
+      </div>
+      <div class="form-group">
+        <label>Latitude (opcional)</label>
+        <input type="number" id="den-lat" placeholder="-1.9406"/>
+      </div>
+      <div class="form-group">
+        <label>Longitude (opcional)</label>
+        <input type="number" id="den-lon" placeholder="-54.7389"/>
+      </div>
+      <button class="btn" onclick="enviarDenuncia()">Registrar Denúncia</button>
+      <div id="den-status" style="margin-top:12px;font-size:.82rem"></div>
+    </div>
+    <div>
+      <div class="panel"><h2>Denúncias Registradas</h2></div>
+      <div id="lista-denuncias" style="margin-top:10px"><div class="loading is-loading">Carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOLETIM PDF ═══════════════════════════════════════════════════════════ -->
+<div id="pagina-boletim" class="pagina">
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Boletim Mensal PDF</h2>
+      <p style="font-size:.83rem;color:var(--c-text-muted);margin-bottom:16px">Relatório formatado com todos os dados do mês. Ideal para compartilhar com vereadores e imprensa.</p>
+      <button class="btn" onclick="gerarPDF()">Gerar PDF</button>
+      <div id="pdf-status" style="margin-top:12px;font-size:.83rem"></div>
+    </div>
+    <div class="panel">
+      <h2>Exportar Dados</h2>
+      <p style="font-size:.83rem;color:var(--c-text-muted);margin-bottom:16px">Planilha completa com contratos, copy-paste e PNCP. Para jornalistas e vereadores.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <a href="/api/exportar/excel" class="btn" style="display:block;text-align:center;text-decoration:none">
+          Baixar Excel (.xlsx) — todas as abas
+        </a>
+        <a href="/api/exportar/csv" class="btn btn-cinza" style="display:block;text-align:center;text-decoration:none">
+          Baixar CSV — contratos com score
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:18px">
+    <h2>Diário Oficial do Pará</h2>
+    <p style="font-size:.83rem;color:var(--c-text-muted);margin-bottom:14px">Publicações sobre Alenquer no DOE-PA e DOU.</p>
+    <button class="btn btn-cinza btn-sm" onclick="atualizarDOE()"><i data-lucide="search" class="btn-icon"></i> Buscar publicações</button>
+    <div id="lista-doe" style="margin-top:14px"><div class="loading">Clique em "Buscar publicações" para carregar.</div></div>
+  </div>
+</div>
+
+<!-- ══ TSE × CONTRATOS ════════════════════════════════════════════════════════ -->
+<div id="pagina-tse" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Pares Encontrados</div><div class="valor" id="tse-total" style="color:var(--c-danger)">—</div></div>
+    <div class="card"><div class="label">ROI Médio</div><div class="valor" id="tse-roi-medio" style="color:var(--c-warning)">—</div></div>
+    <div class="card"><div class="label">Maior ROI</div><div class="valor" id="tse-roi-max" style="color:var(--c-danger)">—</div></div>
+  </div>
+  <div style="margin-bottom:16px">
+    <button class="btn" onclick="carregarTSE()"><i data-lucide="search" class="btn-icon"></i> Buscar</button>
+    <span style="font-size:.78rem;color:var(--c-text-muted);margin-left:10px">Analisa eleições de 2024, 2022 e 2020</span>
+  </div>
+  <div class="panel"><h2>Doadores que Receberam Contratos</h2>
+    <div id="lista-tse"><div class="loading">Selecione o ano e clique em Buscar.</div></div>
+  </div>
+</div>
+
+<!-- ══ CNJ — PROCESSOS ════════════════════════════════════════════════════════ -->
+<div id="pagina-cnj" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Empresas com Processos</div><div class="valor" id="cnj-empresas" style="color:var(--c-danger)">—</div></div>
+    <div class="card"><div class="label">Processos Irregulares</div><div class="valor" id="cnj-processos" style="color:var(--c-warning)">—</div></div>
+  </div>
+  <div class="panel"><h2>Empresas com Pendências Judiciais</h2>
+    <div id="lista-cnj"><div class="loading is-loading">Carregando processos CNJ...</div></div>
+  </div>
+</div>
+
+<!-- ══ SAÚDE — SIOPS ══════════════════════════════════════════════════════════ -->
+<div id="pagina-saude" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Convênios SUS (total)</div><div class="valor" id="sus-transf" style="font-size:1.1rem">—</div></div>
+    <div class="card"><div class="label">Valor Liberado SUS</div><div class="valor" id="sus-desp" style="font-size:1.1rem">—</div></div>
+    <div class="card"><div class="label">Execução Convênios</div><div class="valor" id="sus-pct">—</div></div>
+    <div class="card"><div class="label">BPC — Beneficiários</div><div class="valor" id="sus-bpc-benef">—</div><div class="sub">Mês atual</div></div>
+    <div class="card"><div class="label">BPC — Valor Mensal</div><div class="valor" id="sus-bpc-valor">—</div><div class="sub">Idosos + PcD</div></div>
+    <div class="card"><div class="label">Convênios Saúde</div><div class="valor" id="sus-n-conv">—</div><div class="sub">Filtrados por tema</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Tendência Saúde (4 anos)</h2><canvas id="chart-saude" height="200"></canvas></div>
+    <div class="panel"><h2>BPC — Evolução Mensal (12 meses)</h2><canvas id="chart-saude-bpc" height="200"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel"><h2>Situação dos Convênios</h2><div id="saude-status"><div class="loading">Aguardando token...</div></div></div>
+    <div class="panel"><h2>Top Despesas em Saúde</h2><div id="saude-top-desp"><div class="loading">Aguardando token...</div></div></div>
+  </div>
+</div>
+
+<!-- ══ EMPREGO — CAGED ════════════════════════════════════════════════════════ -->
+<div id="pagina-emprego" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Saldo de Empregos</div><div class="valor" id="caged-saldo">—</div></div>
+    <div class="card"><div class="label">Admissões</div><div class="valor" id="caged-admissoes" style="color:var(--c-primary)">—</div></div>
+    <div class="card"><div class="label">Demissões</div><div class="valor" id="caged-demissoes" style="color:var(--c-danger)">—</div></div>
+  </div>
+  <div class="panel"><h2>Evolução do Emprego Formal</h2><canvas id="chart-emprego" height="200"></canvas></div>
+</div>
+
+<!-- ══ SEMÂNTICO ══════════════════════════════════════════════════════════════ -->
+<div id="pagina-semantico" class="pagina">
+  <div class="cards">
+    <div class="card"><div class="label">Pares Semânticos</div><div class="valor" id="sem-pares" style="color:var(--c-warning)">—</div></div>
+    <div class="card"><div class="label">Contratos Analisados</div><div class="valor" id="sem-total">—</div></div>
+    <div class="card"><div class="label">Maior Similaridade</div><div class="valor" id="sem-max" style="color:var(--c-danger)">—</div></div>
+  </div>
+  <div class="panel"><h2>Grupos Semânticos Suspeitos</h2>
+    <div id="lista-semantico"><div class="loading is-loading">Carregando análise semântica...</div></div>
+  </div>
+</div>
+
+<!-- ══ BENCHMARK NACIONAL ═════════════════════════════════════════════════════ -->
+<div id="pagina-benchmark" class="pagina">
+  <button class="btn" onclick="carregarBenchmark()" style="margin-bottom:18px"><i data-lucide="bar-chart" class="btn-icon"></i> Calcular Benchmark</button>
+  <div class="cards" id="bmark-cards" style="display:none">
+    <div class="card"><div class="label">Posição Transferências</div><div class="valor" id="bmark-pos">—</div></div>
+    <div class="card"><div class="label">Total Municípios</div><div class="valor" id="bmark-total">—</div></div>
+    <div class="card"><div class="label">Transferências</div><div class="valor" id="bmark-transf" style="font-size:1rem">—</div></div>
+  </div>
+  <div id="bmark-interpretacao" style="margin:10px 0 16px;font-size:.88rem;color:var(--c-primary-hover);font-style:italic"></div>
+  <div id="lista-benchmark"><div class="loading">Clique em "Calcular Benchmark" para comparar.</div></div>
+</div>
+
+<!-- ══ AGENDAMENTO ════════════════════════════════════════════════════════════ -->
+<div id="pagina-agendamento" class="pagina">
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Instalar Agendamento</h2>
+      <div class="form-group" style="margin-top:12px">
+        <label>Frequência</label>
+        <select id="cron-freq" style="width:100%">
+          <option value="diario">Diário (7h da manhã)</option>
+          <option value="semanal" selected>Semanal (segunda-feira, 7h)</option>
+          <option value="quinzenal">Quinzenal (dias 1 e 15)</option>
+          <option value="mensal">Mensal (dia 1)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>E-mail para alertas (opcional)</label>
+        <input type="email" id="cron-email" placeholder="seu@email.com" style="width:100%"/>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn" onclick="instalarCron()"><i data-lucide="check" class="btn-icon"></i> Instalar</button>
+        <button class="btn btn-vermelho" onclick="removerCron()"><i data-lucide="trash-2" class="btn-icon"></i> Remover</button>
+      </div>
+      <div id="cron-msg" style="margin-top:12px;font-size:.83rem"></div>
+    </div>
+    <div class="panel">
+      <h2>Status do Agendamento</h2>
+      <div id="cron-status"><div class="loading is-loading">Carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SANKEY — FLUXO DE DINHEIRO ════════════════════════════════════════════ -->
+<div id="pagina-sankey" class="pagina">
+  <button class="btn btn-cinza btn-sm" onclick="renderSankey()" style="margin-bottom:16px"><i data-lucide="git-merge" class="btn-icon"></i> Desenhar</button>
+  <div id="sankey-container"><div class="loading" style="padding:60px">Clique em "Desenhar Fluxo" após carregar os dados.</div></div>
+</div>
+
+<!-- ══ TIMELINE POR EMPRESA ══════════════════════════════════════════════════ -->
+<div id="pagina-timeline" class="pagina">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <input type="text" id="tl-filtro" placeholder="Filtrar por empresa..." style="flex:1;min-width:200px"/>
+    <button class="btn btn-sm" onclick="renderTimeline()"><i data-lucide="play" class="btn-icon"></i> Carregar</button>
+  </div>
+  <div id="timeline-container"><div class="loading">Clique em "Carregar" para ver a timeline.</div></div>
+  <div id="tl-detalhe" style="margin-top:12px;font-size:.83rem;color:var(--c-text-muted);min-height:40px"></div>
+</div>
+
+</main>
+</div><!-- .content -->
+</div><!-- .app -->
+
+<script>
+// ── Estado global ─────────────────────────────────────────────────────────────
+let _dadosBF = [], _dadosTransf = [], _dadosDesp = [];
+let chartBF = null, chartValor = null, chartHist = null;
+let grafNet = null;
+
+// ── Token: carregado do .env via API ─────────────────────────────────────────
+let _apiToken = '';
+const token = () => _apiToken;
+const get   = url => fetch(url, {headers:{'X-API-Token': token()}}).then(r => r.json());
+
+// ── Utilitários ───────────────────────────────────────────────────────────────
+const fmt  = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v);
+const fmtN = v => new Intl.NumberFormat('pt-BR').format(v);
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  lucide.createIcons();
+  try {
+    const resp = await fetch('/api/token');
+    const data = await resp.json();
+    if (data.token) {
+      _apiToken = data.token;
+      await carregar();
+    }
+    carregarNoticias();
+  } catch(e) {}
+});
+
+const CHART_OPTS = {
+  responsive: true,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 30, font: { size: 10, family: 'Inter' } }, grid: { color: '#f1f5f9' }, border: { color: '#e2e8f0' } },
+    y: { ticks: { color: '#94a3b8', font: { size: 10, family: 'Inter' } }, grid: { color: '#f1f5f9' }, border: { color: '#e2e8f0' } }
+  }
+};
+
+// ── Abas ──────────────────────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  dados:'Dados Gerais', risco:'Monitor de Risco', copypaste:'Copy-Paste',
+  pncp:'PNCP', empresas:'Empresas', mapa:'Mapa de Obras', grafo:'Rede de Relacionamentos',
+  municipios:'Municípios', ia:'Inteligência Artificial', noticias:'Notícias',
+  denuncia:'Canal de Denúncia', boletim:'Boletim Mensal', tse:'TSE × Contratos',
+  cnj:'CNJ — Processos', saude:'Saúde', emprego:'Emprego (CAGED)',
+  semantico:'Análise Semântica', benchmark:'Benchmark Regional',
+  agendamento:'Agendamento', sankey:'Fluxo de Recursos', timeline:'Timeline'
+};
+function aba(nome, el) {
+  document.querySelectorAll('.pagina').forEach(p => p.classList.remove('ativa'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('ativa'));
+  document.getElementById('pagina-' + nome).classList.add('ativa');
+  el.classList.add('ativa');
+  const titleEl = document.getElementById('topbar-page-title');
+  if (titleEl) titleEl.textContent = PAGE_TITLES[nome] || nome;
+  if (nome === 'risco')        carregarMonitor();
+  if (nome === 'copypaste')    carregarCopypaste();
+  if (nome === 'pncp')         carregarPNCP();
+  if (nome === 'empresas')     carregarEmpresas();
+  if (nome === 'mapa')         carregarMapa();
+  if (nome === 'grafo')        carregarGrafo();
+  if (nome === 'noticias')     carregarNoticias();
+  if (nome === 'denuncia')     carregarDenuncias();
+  if (nome === 'cnj')          carregarCNJ();
+  if (nome === 'saude')        { carregarSaude(); carregarBPC(); }
+  if (nome === 'emprego')      carregarEmprego();
+  if (nome === 'semantico')    carregarSemantico();
+  if (nome === 'benchmark')    document.getElementById('lista-benchmark').innerHTML='<div class="loading">Clique em "Calcular Benchmark".</div>';
+  if (nome === 'agendamento')  carregarAgendamento();
+  if (nome === 'sankey')       renderSankey();
+  if (nome === 'timeline')     renderTimeline();
+}
+
+// ── Dados Gerais ──────────────────────────────────────────────────────────────
+async function carregar() {
+  if (!token()) return;
+  const btn = document.querySelector('header .btn');
+  btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="btn-icon" style="animation:spin .7s linear infinite"></i> Carregando...';
+  try {
+    await Promise.all([
+      carregarBF(),
+      carregarTransf(),
+      carregarDesp(),
+      carregarBPC(),
+      carregarSeguroDefeso(),
+      carregarConveniosAnalise(),
+      carregarBeneficiosResumo(),
+    ]);
+  } catch(e) { console.error(e); }
+  finally { btn.disabled = false; btn.innerHTML = '<i data-lucide="refresh-cw" class="btn-icon"></i> Atualizar'; lucide.createIcons(); }
+}
+
+async function carregarBF() {
+  _dadosBF = await get('/api/bolsa-familia');
+  if (!Array.isArray(_dadosBF) || !_dadosBF.length) return;
+  const ul = _dadosBF[_dadosBF.length-1];
+  document.getElementById('bf-benef').textContent = fmtN(ul.beneficiarios);
+  document.getElementById('bf-valor').textContent  = fmt(ul.valor);
+  document.getElementById('bf-mes').textContent    = ul.mesAno;
+  const labels = _dadosBF.map(d => d.mesAno);
+  if (chartBF)    chartBF.destroy();
+  if (chartValor) chartValor.destroy();
+  chartBF = new Chart(document.getElementById('chart-bf'),{type:'bar',
+    data:{labels,datasets:[{label:'Beneficiários',data:_dadosBF.map(d=>d.beneficiarios),
+    backgroundColor:'rgba(22,163,74,.75)',borderRadius:6,borderSkipped:false}]},options:CHART_OPTS});
+  chartValor = new Chart(document.getElementById('chart-valor'),{type:'line',
+    data:{labels,datasets:[{label:'Valor',data:_dadosBF.map(d=>d.valor),
+    borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.08)',tension:.4,fill:true,
+    pointBackgroundColor:'#16a34a',pointRadius:3}]},options:CHART_OPTS});
+}
+
+async function carregarTransf() {
+  _dadosTransf = await get('/api/transferencias');
+  const el = document.getElementById('tabela-transf');
+  if (!Array.isArray(_dadosTransf)||!_dadosTransf.length){el.innerHTML='<div class="loading">Sem dados</div>';return;}
+  const total = _dadosTransf.reduce((s,t)=>s+(t.valor||0),0);
+  document.getElementById('transf-total').textContent = fmt(total);
+  document.getElementById('transf-ano').textContent   = `${_dadosTransf.length} transferências`;
+  el.innerHTML = `<table class="tabela"><thead><tr><th>Ação</th><th>Valor</th></tr></thead><tbody>`+
+    _dadosTransf.slice(0,10).map(t=>`<tr><td>${(t.acao||t.nomeFuncao||'N/A').substring(0,45)}</td>
+    <td class="valor-verde">${fmt(t.valor||0)}</td></tr>`).join('')+`</tbody></table>`;
+}
+
+async function carregarDesp() {
+  _dadosDesp = await get('/api/despesas');
+  const el = document.getElementById('tabela-desp');
+  if (!Array.isArray(_dadosDesp)||!_dadosDesp.length){el.innerHTML='<div class="loading">Sem dados</div>';return;}
+  const total = _dadosDesp.reduce((s,d)=>s+(d.valorLiquido||d.valor||0),0);
+  document.getElementById('desp-total').textContent = fmt(total);
+  el.innerHTML = `<table class="tabela"><thead><tr><th>Favorecido</th><th>Valor</th></tr></thead><tbody>`+
+    _dadosDesp.slice(0,10).map(d=>`<tr><td>${(d.nomeFavorecido||'N/A').substring(0,40)}</td>
+    <td class="valor-verde">${fmt(d.valorLiquido||d.valor||0)}</td></tr>`).join('')+`</tbody></table>`;
+}
+
+// ── BPC ───────────────────────────────────────────────────────────────────────
+let chartBPC = null;
+async function carregarBPC() {
+  const dados = await get('/api/bpc');
+  if (!Array.isArray(dados) || !dados.length) return;
+  const ul = dados[dados.length - 1];
+  const el1 = document.getElementById('bpc-benef');
+  const el2 = document.getElementById('bpc-valor');
+  if (el1) el1.textContent = fmtN(ul.beneficiarios);
+  if (el2) el2.textContent = fmt(ul.valor);
+  const elSus1 = document.getElementById('sus-bpc-benef');
+  const elSus2 = document.getElementById('sus-bpc-valor');
+  if (elSus1) elSus1.textContent = fmtN(ul.beneficiarios);
+  if (elSus2) elSus2.textContent = fmt(ul.valor);
+  const labels = dados.map(d => d.mesAno);
+  const bpcCanvas = document.getElementById('chart-bpc');
+  const bpcSaudeCanvas = document.getElementById('chart-saude-bpc');
+  if (chartBPC) chartBPC.destroy();
+  const opts = {
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Beneficiários',data:dados.map(d=>d.beneficiarios),backgroundColor:'rgba(144,205,244,.7)',borderRadius:4},
+    ]},
+    options:{...CHART_OPTS,plugins:{legend:{display:false}}}
+  };
+  if (bpcCanvas) chartBPC = new Chart(bpcCanvas, opts);
+  if (bpcSaudeCanvas) new Chart(bpcSaudeCanvas, JSON.parse(JSON.stringify(opts)));
+}
+
+// ── Seguro Defeso ─────────────────────────────────────────────────────────────
+let chartDefeso = null;
+async function carregarSeguroDefeso() {
+  const dados = await get('/api/seguro-defeso');
+  if (!Array.isArray(dados) || !dados.length) return;
+  const comDados = dados.filter(d => d.valor > 0);
+  const ul = comDados[comDados.length - 1] || dados[dados.length - 1];
+  const elB = document.getElementById('sd-benef');
+  const elV = document.getElementById('sd-valor');
+  if (elB) elB.textContent = fmtN(ul.beneficiarios);
+  if (elV) elV.textContent = fmt(ul.valor);
+  const labels = dados.map(d => d.mesAno);
+  const canvas = document.getElementById('chart-defeso');
+  if (!canvas) return;
+  if (chartDefeso) chartDefeso.destroy();
+  chartDefeso = new Chart(canvas, {
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Valor',data:dados.map(d=>d.valor),backgroundColor:'rgba(246,173,85,.65)',borderRadius:4},
+    ]},
+    options:{...CHART_OPTS,plugins:{legend:{display:false}}}
+  });
+}
+
+// ── Benefícios resumo (mês atual) ─────────────────────────────────────────────
+async function carregarBeneficiosResumo() {
+  try {
+    const d = await get('/api/beneficios/resumo');
+    const elT = document.getElementById('social-total');
+    if (elT) elT.textContent = fmt(d.total_valor || 0);
+    const elSD = document.getElementById('sd-sub');
+    if (elSD && d.seguro_defeso) elSD.textContent = `${fmtN(d.seguro_defeso.beneficiarios)} beneficiários`;
+    const elBPC = document.getElementById('bpc-sub');
+    if (elBPC && d.bpc) elBPC.textContent = `${fmtN(d.bpc.beneficiarios)} beneficiários · ${d.mes}`;
+  } catch(e) {}
+}
+
+// ── Convênios — análise completa ──────────────────────────────────────────────
+let chartConvMin = null, chartConvSit = null, chartConvAno = null;
+async function carregarConveniosAnalise() {
+  try {
+    const d = await get('/api/convenios/analise');
+    if (d.erro) return;
+
+    // Cards
+    const setEl = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+    setEl('conv-total',   fmtN(d.total_convenios));
+    setEl('conv-valor',   fmt(d.total_valor));
+    setEl('conv-liberado',fmt(d.total_liberado));
+    setEl('conv-exec',    (d.pct_executado||0).toFixed(1)+'%');
+
+    // Gráfico por ministério (horizontal bar)
+    const mins  = (d.por_ministerio||[]).slice(0,10);
+    const cMin  = document.getElementById('chart-conv-min');
+    if (cMin && mins.length) {
+      if (chartConvMin) chartConvMin.destroy();
+      chartConvMin = new Chart(cMin, {
+        type:'bar',
+        data:{
+          labels: mins.map(m=>m.nome.replace(/Ministério (do|da|de|dos|das)? ?/i,'').substring(0,35)),
+          datasets:[
+            {label:'Contratado',data:mins.map(m=>m.valor),backgroundColor:'rgba(104,211,145,.5)',borderRadius:4},
+            {label:'Liberado',  data:mins.map(m=>m.liberado),backgroundColor:'rgba(144,205,244,.8)',borderRadius:4},
+          ]
+        },
+        options:{...CHART_OPTS,indexAxis:'y',plugins:{legend:{display:true,labels:{color:'#64748b',font:{size:11}}}}}
+      });
+    }
+
+    // Gráfico por situação (doughnut)
+    const sits   = (d.por_situacao||[]).slice(0,6);
+    const CORES  = ['#68d391','#f6ad55','#fc8181','#90cdf4','#d6bcfa','#fbd38d'];
+    const cSit   = document.getElementById('chart-conv-sit');
+    if (cSit && sits.length) {
+      if (chartConvSit) chartConvSit.destroy();
+      chartConvSit = new Chart(cSit, {
+        type:'doughnut',
+        data:{
+          labels: sits.map(s=>s.situacao),
+          datasets:[{data:sits.map(s=>s.qtd),backgroundColor:CORES,borderWidth:2,borderColor:'#ffffff'}]
+        },
+        options:{responsive:true,plugins:{legend:{display:true,position:'right',labels:{color:'#64748b',font:{size:11}}}}}
+      });
+    }
+
+    // Gráfico por ano
+    const anos = (d.por_ano||[]);
+    const cAno = document.getElementById('chart-conv-ano');
+    if (cAno && anos.length) {
+      if (chartConvAno) chartConvAno.destroy();
+      chartConvAno = new Chart(cAno, {
+        type:'bar',
+        data:{
+          labels: anos.map(a=>a.ano),
+          datasets:[{label:'Valor',data:anos.map(a=>a.valor),backgroundColor:'rgba(198,132,255,.65)',borderRadius:4}]
+        },
+        options:{...CHART_OPTS,plugins:{legend:{display:false}}}
+      });
+    }
+
+    // Tabela top convênios
+    const elTop = document.getElementById('tabela-top-conv');
+    if (elTop && (d.top_convenios||[]).length) {
+      elTop.innerHTML = `<table class="tabela"><thead><tr>
+        <th>Objeto</th><th>Min.</th><th>Situação</th><th>Liberado</th>
+      </tr></thead><tbody>`+
+      d.top_convenios.slice(0,15).map(c=>{
+        const cor = /INAD/i.test(c.situacao)?'var(--c-danger)':/CONCLU/i.test(c.situacao)?'var(--c-primary)':'var(--c-warning)';
+        return `<tr>
+          <td title="${c.objeto}">${c.objeto.substring(0,50)}</td>
+          <td style="color:var(--c-info)">${c.ministerio}</td>
+          <td style="color:${cor};font-size:.78rem">${c.situacao}</td>
+          <td class="valor-verde">${fmt(c.liberado||c.valor)}</td>
+        </tr>`;
+      }).join('')+`</tbody></table>`;
+    }
+  } catch(e) { console.error('conv analise', e); }
+}
+
+// ── Monitor de risco ──────────────────────────────────────────────────────────
+async function carregarMonitor() {
+  const el = document.getElementById('lista-risco');
+  const r  = await fetch('/api/monitor');
+  if (!r.ok){const d=await r.json();el.innerHTML=`<div class="loading">${d.erro||'Sem dados'}</div>`;return;}
+  const res = await r.json();
+  const alto  = res.filter(r=>r.score>=70);
+  const medio = res.filter(r=>r.score>=40&&r.score<70);
+  const ultimo= res[0]?.analisado_em;
+  document.getElementById('mon-total').textContent = res.length;
+  document.getElementById('mon-alto').textContent  = alto.length;
+  document.getElementById('mon-medio').textContent = medio.length;
+  document.getElementById('mon-data').textContent  = ultimo ? new Date(ultimo).toLocaleDateString('pt-BR') : '—';
+  el.innerHTML = [...res].sort((a,b)=>b.score-a.score).map(cartaoRisco).join('');
+
+  const hist = await get('/api/historico');
+  if (Array.isArray(hist) && hist.length) {
+    const labels = hist.map(h=>h.data.substring(0,10)).reverse();
+    const altos  = hist.map(h=>h.alto_risco).reverse();
+    if (chartHist) chartHist.destroy();
+    chartHist = new Chart(document.getElementById('chart-historico'),{type:'bar',
+      data:{labels,datasets:[
+        {label:'Alto risco',data:altos,backgroundColor:'rgba(252,129,129,.7)',borderRadius:4},
+      ]},options:CHART_OPTS});
+  }
+}
+
+function cartaoRisco(r){
+  const c     = r.contrato;
+  const valor = parseFloat(c.valorInicialCompra||c.valor||0);
+  const nivel = r.score>=70?'alto':r.score>=40?'medio':'baixo';
+  const flags = (r.flags||[]).map(f=>`<span class="flag">${f}</span>`).join('');
+  const conflitos = (r.conflitos||[]).map(h=>
+    `<div><b>${h.socio}</b> — <b>${h.servidor}</b> (${h.orgao})</div>`).join('');
+  const sancoes  = [(r.sancoes?.ceis||[]).length&&`<span class="sancao">CEIS: ${r.sancoes.ceis.length}</span>`,
+                    (r.sancoes?.cnep||[]).length&&`<span class="sancao">CNEP: ${r.sancoes.cnep.length}</span>`]
+                    .filter(Boolean).join(' ');
+  const socios   = (r.cnpj_dados?.socios||[]).slice(0,4)
+    .map(s=>`<span class="socio-tag">${s.nome}</span>`).join('');
+  return `
+  <div class="risco-card ${nivel}">
+    <div class="risco-header">
+      <div>
+        <div class="risco-empresa">${c.nomeContratado||'N/A'}</div>
+        <div class="risco-objeto">${(c.objetoCompra||c.objeto||'—').substring(0,90)}</div>
+      </div>
+      <div class="badge-score badge-${nivel}">${r.icone} ${r.score}/100</div>
+    </div>
+    <div class="risco-detalhes">
+      <span>${fmt(valor)}</span><span>${c.modalidadeCompra||'N/A'}</span>
+      ${r.cnpj_dados?.inicio?`<span>${r.cnpj_dados.inicio}</span>`:''}
+      ${r.cnpj_dados?.capital?`<span>R$ ${fmtN(r.cnpj_dados.capital)}</span>`:''}
+      ${r.cnpj_dados?.porte?`<span>${r.cnpj_dados.porte}</span>`:''}
+    </div>
+    ${flags?`<div class="flags" style="margin-top:8px">${flags}</div>`:''}
+    ${sancoes?`<div style="margin-top:8px">${sancoes}</div>`:''}
+    ${conflitos?`<div class="conflitos-bloco"><b>Conflito de interesse:</b>${conflitos}</div>`:''}
+    ${socios?`<div style="margin-top:8px"><span style="font-size:.76rem;color:var(--c-text-muted)">Sócios:</span>
+      <div class="socios-lista">${socios}</div></div>`:''}
+  </div>`;
+}
+
+// ── Grafo ─────────────────────────────────────────────────────────────────────
+async function carregarGrafo() {
+  const container = document.getElementById('grafo-container');
+  container.innerHTML = '<div class="loading is-loading">Construindo rede de empresas...</div>';
+  const r = await fetch('/api/grafo');
+  if (!r.ok){container.innerHTML='<div class="loading">Sem dados. Execute o monitor primeiro.</div>';return;}
+  const data = await r.json();
+  const m    = data.metricas||{};
+  document.getElementById('g-nos').textContent    = m.total_nos||0;
+  document.getElementById('g-emp').textContent    = m.empresas||0;
+  document.getElementById('g-pes').textContent    = m.pessoas||0;
+  document.getElementById('g-grupos').textContent = m.grupos||0;
+  container.innerHTML = '';
+  const network = new vis.Network(container,
+    {nodes: new vis.DataSet(data.nodes), edges: new vis.DataSet(data.edges)},
+    {physics:{stabilization:{iterations:120}},
+     nodes:{font:{color:'#0f172a',size:12}},
+     edges:{font:{color:'#64748b',size:10},smooth:{type:'continuous'}},
+     background:{color:'#f8fafc'}});
+}
+
+// ── Municípios ────────────────────────────────────────────────────────────────
+async function compararMunicipios() {
+  const el = document.getElementById('lista-municipios');
+  el.innerHTML = '<div class="loading is-loading">Comparando municípios... pode levar 1-2 minutos.</div>';
+  const r = await fetch('/api/municipios/comparar',{
+    method:'POST', headers:{'Content-Type':'application/json','X-API-Token':token()},
+    body:JSON.stringify({})
+  });
+  const data = await r.json();
+  if (!Array.isArray(data)){el.innerHTML=`<div class="loading">${data.erro||'Erro'}</div>`;return;}
+  const max = Math.max(...data.map(d=>d.score_medio),1);
+  el.innerHTML = data.map((d,i)=>{
+    const pct  = Math.round(d.score_medio/max*100);
+    const dest = d.ibge==='1500404'?' destaque':'';
+    const cor  = d.score_medio>=50?'var(--c-danger)':d.score_medio>=30?'var(--c-warning)':'var(--c-primary)';
+    return `<div class="municipio-row${dest}">
+      <div>
+        <div class="municipio-nome">${i+1}. ${d.nome} ${d.ibge==='1500404'?' ★':''}</div>
+        <div class="municipio-stats">
+          <span>Score médio: <b style="color:${cor}">${d.score_medio}</b></span>
+          <span>Contratos: ${d.contratos}</span>
+          <span>Alto risco: ${d.alto_risco}</span>
+          <span>Sem licitação: ${d.sem_licitacao}</span>
+        </div>
+      </div>
+      <div>
+        <div class="bar-container"><div class="bar-fill" style="width:${pct}%;background:${cor}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Análise IA ────────────────────────────────────────────────────────────────
+async function analisarIA() {
+  const key = document.getElementById('anthropic-key').value.trim();
+  if (!key){alert('Cole sua chave da Anthropic.');return;}
+  document.getElementById('ia-analises').innerHTML = '<div class="loading is-loading">Analisando contratos com IA...</div>';
+  const r = await fetch('/api/ia/analisar',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({anthropic_key:key})
+  });
+  const data = await r.json();
+  if (data.erro){document.getElementById('ia-analises').innerHTML=`<div class="loading">${data.erro}</div>`;return;}
+  if (data.resumo){
+    const el = document.getElementById('ia-resumo');
+    el.innerHTML = `<strong>Resumo Executivo:</strong><br><br>${data.resumo}`;
+    el.style.display='block';
+  }
+  document.getElementById('ia-analises').innerHTML = (data.analises||[]).map(a=>{
+    const ia   = a.analise||{};
+    const sc   = ia.score_ia||0;
+    const cls  = sc>=70?'alto':sc>=40?'medio':'baixo';
+    const tags = (ia.linguagem_suspeita||[]).map(t=>`<span class="ia-tag">${t}</span>`).join('');
+    return `<div class="ia-card">
+      <span class="ia-score ia-score-${cls}">IA Score: ${sc}/100</span>
+      <div style="font-weight:700;margin-bottom:8px">${a.empresa}</div>
+      <div class="ia-parecer">${ia.parecer||'—'}</div>
+      ${ia.recomendacao?`<div class="ia-rec">${ia.recomendacao}</div>`:''}
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+        ${ia.objeto_vago?'<span class="flag">Objeto vago</span>':''}
+        ${!ia.valor_compativel?'<span class="flag">Valor incompatível</span>':''}
+        ${ia.justificativa_ausente?'<span class="flag">Sem justificativa</span>':''}
+      </div>
+      ${tags?`<div style="margin-top:8px">${tags}</div>`:''}
+    </div>`;
+  }).join('') || '<div class="loading">Nenhum contrato de risco para analisar.</div>';
+}
+
+// ── Notícias ──────────────────────────────────────────────────────────────────
+async function carregarNoticias() {
+  const el = document.getElementById('lista-noticias');
+  const data = await get('/api/noticias');
+  if (!Array.isArray(data)||!data.length){el.innerHTML='<div class="loading">Sem notícias. Clique em Atualizar.</div>';return;}
+  el.innerHTML = data.map(n=>`
+    <div class="noticia-card">
+      <div class="noticia-titulo"><a href="${n.url}" target="_blank">${n.titulo}</a></div>
+      <div class="noticia-meta">${n.fonte} · ${new Date(n.data).toLocaleDateString('pt-BR')}</div>
+      ${n.resumo?`<div class="noticia-resumo">${n.resumo.substring(0,200)}...</div>`:''}
+    </div>`).join('');
+}
+
+async function atualizarNoticias() {
+  document.getElementById('lista-noticias').innerHTML='<div class="loading is-loading">Buscando notícias...</div>';
+  await fetch('/api/noticias/atualizar',{method:'POST'});
+  await carregarNoticias();
+}
+
+// ── Denúncias ─────────────────────────────────────────────────────────────────
+async function enviarDenuncia() {
+  const desc = document.getElementById('den-desc').value.trim();
+  if (!desc){alert('Descreva a irregularidade.');return;}
+  const r = await fetch('/api/denuncia',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      descricao: desc,
+      local: document.getElementById('den-local').value,
+      lat:   parseFloat(document.getElementById('den-lat').value)||null,
+      lon:   parseFloat(document.getElementById('den-lon').value)||null,
+    })
+  });
+  const d = await r.json();
+  const el = document.getElementById('den-status');
+  if (d.id){
+    el.innerHTML = `<span style="color:var(--c-primary)">Denúncia #${d.id} registrada com sucesso.</span>`;
+    document.getElementById('den-desc').value='';
+    document.getElementById('den-local').value='';
+    await carregarDenuncias();
+  } else {
+    el.innerHTML = `<span style="color:var(--c-danger)">Erro: ${d.erro}</span>`;
+  }
+}
+
+async function carregarDenuncias() {
+  const el   = document.getElementById('lista-denuncias');
+  const data = await get('/api/denuncias');
+  if (!Array.isArray(data)||!data.length){el.innerHTML='<div class="loading">Nenhuma denúncia registrada.</div>';return;}
+  el.innerHTML = data.map(d=>`
+    <div class="denuncia-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="badge-nova">nova</span>
+        <span class="denuncia-data">#${d.id} · ${new Date(d.data).toLocaleDateString('pt-BR')}</span>
+      </div>
+      <div class="denuncia-texto">${d.descricao}</div>
+      ${d.local?`<div style="font-size:.75rem;color:var(--c-text-muted);margin-top:4px">${d.local}</div>`:''}
+    </div>`).join('');
+}
+
+// ── Boletim PDF ───────────────────────────────────────────────────────────────
+async function gerarPDF() {
+  const el = document.getElementById('pdf-status');
+  el.innerHTML = '<span style="color:var(--c-text-muted)">Gerando PDF...</span>';
+  const r = await fetch('/api/pdf/gerar',{
+    method:'POST', headers:{'Content-Type':'application/json','X-API-Token':token()},
+    body:JSON.stringify({bolsa_familia:_dadosBF, transferencias:_dadosTransf, despesas:_dadosDesp})
+  });
+  const d = await r.json();
+  if (d.arquivo){
+    el.innerHTML = `PDF gerado! <a href="/api/pdf/download/${d.arquivo}"
+      style="color:var(--c-primary);font-weight:700">⬇ Baixar ${d.arquivo}</a>`;
+  } else {
+    el.innerHTML = `<span style="color:var(--c-danger)">Erro: ${d.erro}</span>`;
+  }
+}
+
+// ── Copy-paste ────────────────────────────────────────────────────────────────
+async function carregarCopypaste() {
+  const el = document.getElementById('lista-copypaste');
+  el.innerHTML = '<div class="loading is-loading">Analisando similaridade dos contratos...</div>';
+  const r = await fetch('/api/copypaste');
+  if (!r.ok){el.innerHTML='<div class="loading">Sem dados. Execute o monitor primeiro.</div>';return;}
+  const data = await r.json();
+  const pares = data.pares || [];
+  const clusters = data.clusters || [];
+  document.getElementById('cp-pares').textContent    = pares.length;
+  document.getElementById('cp-clusters').textContent = clusters.length;
+  document.getElementById('cp-max').textContent      = pares.length ? pares[0].similaridade.toFixed(0)+'%' : '—';
+  if (!pares.length){el.innerHTML='<div class="loading">Nenhum copy-paste detectado nos contratos analisados.</div>';return;}
+  el.innerHTML = pares.map(p=>`
+    <div class="cp-card">
+      <div class="cp-sim">${p.similaridade}% idêntico</div>
+      <div class="cp-empresa">${p.contrato_a?.nomeContratado||'N/A'}</div>
+      <div class="cp-objeto">${p.objeto_a||'—'}</div>
+      <div class="cp-vs">↕ vs ↕</div>
+      <div class="cp-empresa">${p.contrato_b?.nomeContratado||'N/A'}</div>
+      <div class="cp-objeto">${p.objeto_b||'—'}</div>
+    </div>`).join('');
+}
+
+// ── PNCP ──────────────────────────────────────────────────────────────────────
+async function carregarPNCP() {
+  const el = document.getElementById('tabela-pncp');
+  el.innerHTML = '<div class="loading is-loading">Consultando PNCP...</div>';
+  const r = await fetch('/api/pncp');
+  if (!r.ok){el.innerHTML='<div class="loading">Erro ao consultar PNCP.</div>';return;}
+  const data = await r.json();
+  document.getElementById('pncp-total').textContent = data.total || 0;
+  document.getElementById('pncp-valor').textContent = fmt(data.valor_total || 0);
+  document.getElementById('pncp-disp').textContent  = data.dispensas || 0;
+  const lista = data.contratacoes || [];
+  if (!lista.length){el.innerHTML='<div class="loading">Nenhuma contratação encontrada no PNCP.</div>';return;}
+  el.innerHTML = `<table class="tabela"><thead><tr>
+    <th>Empresa</th><th>Objeto</th><th>Valor</th><th>Modalidade</th>
+  </tr></thead><tbody>`+lista.slice(0,20).map(c=>`
+    <tr>
+      <td>${(c.nomeContratado||'N/A').substring(0,35)}</td>
+      <td>${(c.objetoCompra||'—').substring(0,60)}</td>
+      <td class="valor-verde">${fmt(c.valorInicialCompra||0)}</td>
+      <td><span class="pncp-tag">${(c.modalidadeCompra||'N/A').substring(0,20)}</span></td>
+    </tr>`).join('')+`</tbody></table>`;
+}
+
+// ── Empresas ──────────────────────────────────────────────────────────────────
+async function carregarEmpresas() {
+  const res = await get('/api/empresas/resumo');
+  document.getElementById('emp-total').textContent = res.total_empresas || 0;
+  document.getElementById('emp-alto').textContent  = res.alto_risco || 0;
+  document.getElementById('emp-alta').textContent  = res.em_alta || 0;
+
+  const [emAlta, ranking] = await Promise.all([
+    get('/api/empresas/em-alta'),
+    get('/api/empresas/ranking'),
+  ]);
+
+  const elAlta = document.getElementById('lista-emp-alta');
+  if (!emAlta.length){elAlta.innerHTML='<div class="loading">Nenhuma empresa com score crescendo.</div>';}
+  else elAlta.innerHTML = emAlta.map(e=>`
+    <div class="emp-card">
+      <div class="emp-score" style="color:${e.score_max>=70?'var(--c-danger)':'var(--c-warning)'}">${e.score_max}</div>
+      <div style="flex:1">
+        <div class="emp-nome">${e.nome||e.cnpj}</div>
+        <div class="emp-trend">${e.aparicoes} aparições · desde ${e.primeira_vez||'?'}</div>
+      </div>
+      <div class="emp-delta up">+${e.delta} ↑</div>
+    </div>`).join('');
+
+  const elRank = document.getElementById('lista-emp-ranking');
+  if (!ranking.length){elRank.innerHTML='<div class="loading">Execute o monitor para popular o histórico.</div>';}
+  else elRank.innerHTML = `<table class="tabela"><thead><tr>
+    <th>Empresa</th><th>Score Médio</th><th>Máximo</th><th>Tendência</th>
+  </tr></thead><tbody>`+ranking.slice(0,15).map(e=>{
+    const tendIcon = e.tendencia==='subindo'?'↑':e.tendencia==='descendo'?'↓':'→';
+    const cor = e.score_medio>=70?'var(--c-danger)':e.score_medio>=40?'var(--c-warning)':'var(--c-primary)';
+    return `<tr>
+      <td>${(e.nome||e.cnpj).substring(0,35)}</td>
+      <td style="color:${cor};font-weight:700">${e.score_medio}</td>
+      <td>${e.score_max}</td>
+      <td>${tendIcon} ${e.tendencia}</td>
+    </tr>`;}).join('')+`</tbody></table>`;
+}
+
+// ── Mapa de obras ─────────────────────────────────────────────────────────────
+let _mapa = null;
+async function carregarMapa() {
+  if (!_mapa) {
+    _mapa = L.map('mapa-container').setView([-1.9406, -54.7389], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {attribution:'© OpenStreetMap'}).addTo(_mapa);
+    // Marcador central de Alenquer
+    L.marker([-1.9406, -54.7389])
+      .addTo(_mapa)
+      .bindPopup('<b>Alenquer / PA</b><br>Centro Municipal')
+      .openPopup();
+  }
+
+  const el = document.getElementById('lista-obras');
+  if (!token()){el.innerHTML='<div class="loading">Informe o token para carregar obras.</div>';return;}
+  el.innerHTML='<div class="loading is-loading">Buscando obras...</div>';
+
+  const r = await fetch('/api/obras',{headers:{'X-API-Token':token()}});
+  if (r.status === 403){el.innerHTML='<div class="loading">Endpoint de obras requer token premium do Portal da Transparência. O mapa exibe apenas a localização do município.</div>';return;}
+  if (!r.ok){el.innerHTML='<div class="loading">Erro ao buscar obras.</div>';return;}
+  const obras = await r.json();
+  if (!obras.length||obras.erro){el.innerHTML='<div class="loading">Nenhuma obra encontrada para Alenquer via API pública.</div>';return;}
+
+  // Adicionar marcadores com offset aleatório (obras sem GPS exato)
+  obras.forEach((o,i)=>{
+    const lat = -1.9406 + (Math.random()-0.5)*0.04;
+    const lon = -54.7389 + (Math.random()-0.5)*0.04;
+    const sit = str(o.situacaoObra||'').toLowerCase();
+    const cor = sit.includes('conclu')?'green':sit.includes('parali')?'red':'orange';
+    const icon = L.divIcon({className:'',html:`<div style="background:${cor};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,.5)"></div>`});
+    L.marker([lat,lon],{icon}).addTo(_mapa).bindPopup(`
+      <b>${o.descricao||o.tipo||'Obra'}</b><br>
+      Valor: R$ ${(o.valorInvestimentoPrevisto||0).toLocaleString('pt-BR')}<br>
+      Situação: ${o.situacaoObra||'N/A'}<br>
+      Responsável: ${o.nomeMunicipio||'N/A'}`);
+  });
+
+  const statusClass = sit => {
+    const s = (sit||'').toLowerCase();
+    if(s.includes('conclu')) return 'concluida';
+    if(s.includes('parali')) return 'paralisada';
+    return 'execucao';
+  };
+
+  el.innerHTML = obras.slice(0,20).map(o=>`
+    <div class="obra-card">
+      <div class="obra-nome">${o.descricao||o.tipo||'Obra sem descrição'}</div>
+      <div class="obra-meta">
+        <span>${fmt(o.valorInvestimentoPrevisto||0)}</span>
+        <span>${o.programa||'N/A'}</span>
+        <span class="obra-status ${statusClass(o.situacaoObra)}">${o.situacaoObra||'N/A'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function str(v){return String(v||'');}
+
+// ── Diário Oficial ────────────────────────────────────────────────────────────
+async function atualizarDOE() {
+  const el = document.getElementById('lista-doe');
+  el.innerHTML = '<div class="loading is-loading">Buscando publicações no DOE-PA...</div>';
+  await fetch('/api/diario-oficial/atualizar', {method:'POST'});
+  const r = await fetch('/api/diario-oficial');
+  const pubs = await r.json();
+  if (!pubs.length){el.innerHTML='<div class="loading">Nenhuma publicação encontrada.</div>';return;}
+  el.innerHTML = pubs.map(p=>`
+    <div class="noticia-card" style="margin-bottom:8px">
+      <div class="noticia-titulo">
+        ${p.url?`<a href="${p.url}" target="_blank">${p.titulo}</a>`:p.titulo}
+      </div>
+      <div class="noticia-meta">${p.fonte||'DOE'} · ${(p.data||'').substring(0,10)}</div>
+      ${p.resumo?`<div class="noticia-resumo">${p.resumo.substring(0,250)}</div>`:''}
+    </div>`).join('');
+}
+
+// ── TSE × Contratos ───────────────────────────────────────────────────────────
+async function carregarTSE() {
+  const el = document.getElementById('lista-tse');
+  el.innerHTML = '<div class="loading is-loading">Buscando dados do TSE...</div>';
+  try {
+    const r = await fetch('/api/tse', {headers:{'X-API-Token': token()}});
+    const d = await r.json();
+    if (d.erro) { el.innerHTML = `<div class="loading">${d.erro}</div>`; return; }
+    const resumo = d.resumo || {};
+    const dados  = d.dados  || [];
+    document.getElementById('tse-total').textContent     = resumo.total || dados.length;
+    document.getElementById('tse-roi-medio').textContent = resumo.roi_medio ? resumo.roi_medio+'x' : '—';
+    const rois = dados.map(p=>p.roi||0).filter(v=>v>0);
+    document.getElementById('tse-roi-max').textContent   = rois.length ? Math.max(...rois).toFixed(1)+'x' : '—';
+    if (!dados.length) { el.innerHTML='<div class="loading">Nenhum doador de campanha encontrado entre os contratados.</div>'; return; }
+    el.innerHTML = dados.map(p=>`
+      <div class="tse-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:.9rem;color:var(--c-text)">${p.nome_empresa||p.cnpj}</div>
+            <div style="font-size:.76rem;color:var(--c-text-muted);margin-top:3px">CNPJ: ${p.cnpj} · Doação: ${fmt(p.valor_doacao||0)}</div>
+            <div style="font-size:.76rem;color:var(--c-text-faint);margin-top:2px">Candidato: ${p.candidato||'?'} · Cargo: ${p.cargo||'?'} (${p.ano_eleicao||'?'})</div>
+            <div style="font-size:.76rem;color:var(--c-info)">Contratos municipais: ${fmt(p.valor_contrato||0)} · Risco: ${p.score_risco||0}</div>
+          </div>
+          <div class="tse-roi" title="Retorno sobre investimento político">${(p.roi||0).toFixed(1)}x ROI</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`; }
+}
+
+// ── CNJ — Processos ───────────────────────────────────────────────────────────
+async function carregarCNJ() {
+  const el = document.getElementById('lista-cnj');
+  el.innerHTML = '<div class="loading is-loading">Consultando Datajud/CNJ...</div>';
+  try {
+    const r = await fetch('/api/cnj');
+    const d = await r.json();
+    if (d.erro) { el.innerHTML=`<div class="loading">${d.erro}</div>`; return; }
+    // Backend retorna dict {cnpj: {nome, score, processos, total, tem_irregularidade, irregulares}}
+    const lista = Object.entries(d).map(([cnpj,info])=>({cnpj,...info}))
+                        .filter(e=>e.tem_irregularidade||e.total>0)
+                        .sort((a,b)=>b.score-a.score);
+    document.getElementById('cnj-empresas').textContent  = lista.filter(e=>e.tem_irregularidade).length;
+    document.getElementById('cnj-processos').textContent = lista.reduce((s,e)=>s+(e.total||0),0);
+    if (!lista.length) { el.innerHTML='<div class="loading">Nenhuma empresa com pendências judiciais identificadas.</div>'; return; }
+    el.innerHTML = lista.map(e=>`
+      <div class="risco-card ${e.score>=70?'alto':e.score>=40?'medio':'baixo'}">
+        <div class="risco-header">
+          <div>
+            <div class="risco-empresa">${e.nome||e.cnpj}</div>
+            <div class="risco-objeto">${e.total||0} processo(s) encontrado(s)${e.tem_irregularidade?' · irregularidades relevantes':''}</div>
+          </div>
+          <span class="badge-score ${e.score>=70?'badge-alto':e.score>=40?'badge-medio':'badge-baixo'}">${e.score}</span>
+        </div>
+        ${(e.irregulares||[]).slice(0,3).map(p=>`
+          <div class="alert-yellow" style="font-size:.77rem;margin-top:6px">
+            ${(p.assuntos||[p.classe||'Processo']).join(', ').substring(0,80)} · ${(p.dataAjuizamento||'').substring(0,10)}
+          </div>`).join('')}
+      </div>`).join('');
+  } catch(e) { el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`; }
+}
+
+// ── Saúde (SIOPS) ─────────────────────────────────────────────────────────────
+let chartSaude = null;
+async function carregarSaude() {
+  const el = document.getElementById('saude-status');
+  el.innerHTML = '<div class="loading is-loading">Buscando dados de saúde...</div>';
+  try {
+    const r = await fetch('/api/saude', {headers:{'X-API-Token': token()}});
+    const d = await r.json();
+    if (d.erro) { el.innerHTML=`<div class="loading">${d.erro}</div>`; return; }
+    const analise   = d.analise  || {};
+    const historico = d.historico || [];
+
+    document.getElementById('sus-transf').textContent = fmt(analise.total_recebido||0);
+    document.getElementById('sus-desp').textContent   = fmt(analise.total_gasto||0);
+    const elNConv = document.getElementById('sus-n-conv');
+    if (elNConv) elNConv.textContent = fmtN(analise.n_convenios||0);
+
+    const pct = analise.pct_executado||0;
+    const pctEl = document.getElementById('sus-pct');
+    pctEl.textContent = pct.toFixed(1)+'%';
+    pctEl.style.color = pct>=50?'var(--c-primary)':'var(--c-danger)';
+
+    // Alertas + detalhes
+    const alertasHtml = (analise.alertas||[]).map(a=>`
+      <div class="alert-red" style="font-size:.82rem;margin-bottom:6px">${a}</div>`).join('');
+    el.innerHTML = alertasHtml + `
+      <div style="font-size:.78rem;color:var(--c-text-muted);margin-top:10px">
+        Convênios federais de saúde · Fonte: Portal da Transparência
+      </div>`;
+
+    // Tabela top despesas
+    const elTop = document.getElementById('saude-top-desp');
+    if (elTop && (analise.top_despesas||[]).length) {
+      elTop.innerHTML = `<table class="tabela"><thead><tr><th>Órgão / Objeto</th><th>Situação</th><th>Valor</th></tr></thead><tbody>`+
+        analise.top_despesas.slice(0,10).map(t=>{
+          const cor = /INAD/i.test(t.situacao)?'var(--c-danger)':/CONCLU/i.test(t.situacao)?'var(--c-primary)':'var(--c-warning)';
+          return `<tr>
+            <td><div style="font-weight:600">${(t.nomeFavorecido||'N/A').substring(0,40)}</div>
+                <div style="font-size:.75rem;color:var(--c-text-muted)">${(t.objeto||'').substring(0,55)}</div></td>
+            <td style="color:${cor};font-size:.78rem">${t.situacao}</td>
+            <td class="valor-verde">${fmt(t.valorLiquido||0)}</td>
+          </tr>`;
+        }).join('')+`</tbody></table>`;
+    }
+
+    // Gráfico tendência 4 anos
+    if (historico.length) {
+      if (chartSaude) chartSaude.destroy();
+      chartSaude = new Chart(document.getElementById('chart-saude'),{
+        type:'bar',
+        data:{labels:historico.map(h=>h.ano),
+          datasets:[
+            {label:'Convênios SUS',data:historico.map(h=>h.conv_anual||h.recebido),backgroundColor:'rgba(144,205,244,.6)',borderRadius:4},
+            {label:'BPC Anual',    data:historico.map(h=>h.bpc_anual||0),backgroundColor:'rgba(104,211,145,.6)',borderRadius:4},
+          ]},
+        options:{...CHART_OPTS,plugins:{legend:{display:true,labels:{color:'#64748b'}}}}
+      });
+    }
+
+    // BPC já carregado por carregarBPC()
+  } catch(e) { el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`; }
+}
+
+// ── Emprego (CAGED) ───────────────────────────────────────────────────────────
+let chartEmprego = null;
+async function carregarEmprego() {
+  try {
+    const r = await fetch('/api/mercado-trabalho');
+    const d = await r.json();
+    if (d.erro) return;
+    // Backend retorna {populacao, emprego_formal:{...}, contexto:[...]}
+    const emp = d.emprego_formal || {};
+    const pop = d.populacao || 0;
+    const saldo = (emp.admissoes||0) - (emp.demissoes||0);
+    const sEl = document.getElementById('caged-saldo');
+    sEl.textContent = emp.saldo_liquido !== undefined ? (emp.saldo_liquido>0?'+':'')+fmtN(emp.saldo_liquido)
+                      : (saldo>0?'+':'')+fmtN(saldo);
+    sEl.style.color = saldo>=0?'var(--c-primary)':'var(--c-danger)';
+    document.getElementById('caged-admissoes').textContent = fmtN(emp.admissoes||0);
+    document.getElementById('caged-demissoes').textContent = fmtN(emp.demissoes||0);
+    // Contexto adicional
+    const ctx = d.contexto||[];
+    if (ctx.length && document.getElementById('chart-emprego')) {
+      const canvas = document.getElementById('chart-emprego');
+      canvas.style.display='none';
+      const info = document.createElement('div');
+      info.style.cssText='font-size:.83rem;color:var(--c-text-muted);line-height:1.8;margin-top:10px';
+      info.innerHTML = `<div style="margin-bottom:8px;font-size:.85rem;color:var(--c-text);font-weight:600">População: ${fmtN(pop)}</div>`
+                     + ctx.map(c=>`<div>• ${c}</div>`).join('');
+      canvas.parentNode.appendChild(info);
+    }
+  } catch(e) {}
+}
+
+// ── Semântico ─────────────────────────────────────────────────────────────────
+async function carregarSemantico() {
+  const el = document.getElementById('lista-semantico');
+  el.innerHTML = '<div class="loading is-loading">Calculando similaridade semântica...</div>';
+  try {
+    const r = await fetch('/api/semantico');
+    const d = await r.json();
+    if (d.erro||!d.pares) { el.innerHTML=`<div class="loading">${d.erro||'Execute o monitor primeiro.'}</div>`; return; }
+    const pares = d.pares||[];
+    document.getElementById('sem-pares').textContent = pares.length;
+    document.getElementById('sem-total').textContent = d.total||'—';
+    const sims = pares.map(p=>p.similaridade||0);
+    document.getElementById('sem-max').textContent = sims.length?Math.max(...sims).toFixed(0)+'%':'—';
+    if (!pares.length) { el.innerHTML='<div class="loading">Nenhum par semântico suspeito detectado.</div>'; return; }
+    el.innerHTML = pares.map(p=>`
+      <div class="cp-card">
+        <div class="cp-sim">${(p.similaridade||0).toFixed(1)}% similar (semântico)</div>
+        <div class="cp-empresa">${p.empresa_a||p.cnpj_a||'?'}</div>
+        <div class="cp-objeto">${(p.objeto_a||'').substring(0,120)}</div>
+        <div class="cp-vs">↕ paráfrase detectada</div>
+        <div class="cp-empresa">${p.empresa_b||p.cnpj_b||'?'}</div>
+        <div class="cp-objeto">${(p.objeto_b||'').substring(0,120)}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`; }
+}
+
+// ── Benchmark ─────────────────────────────────────────────────────────────────
+async function carregarBenchmark() {
+  const el = document.getElementById('lista-benchmark');
+  el.innerHTML = '<div class="loading is-loading">Comparando municípios... (pode demorar ~30s)</div>';
+  try {
+    const r = await fetch('/api/benchmark', {headers:{'X-API-Token': token()}});
+    const d = await r.json();
+    if (d.erro) { el.innerHTML=`<div class="loading">${d.erro}</div>`; return; }
+    const resumo = d.resumo||{};
+    document.getElementById('bmark-cards').style.display='';
+    document.getElementById('bmark-pos').textContent   = `${resumo.posicao_transf||'?'}°`;
+    document.getElementById('bmark-total').textContent = `de ${resumo.total_municipios||'?'}`;
+    document.getElementById('bmark-transf').textContent= fmt(resumo.transf_total||0);
+    document.getElementById('bmark-interpretacao').textContent = resumo.interpretacao||'';
+    const lista = d.municipios||d.benchmark||[];
+    const maxT = Math.max(...lista.map(m=>m.transf_total||0),1);
+    el.innerHTML = lista.map((m,i)=>`
+      <div class="bmark-row ${m.destaque?'destaque':''}">
+        <div style="min-width:26px;font-weight:700;color:var(--c-text-muted);font-size:.85rem">${i+1}°</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.88rem;color:${m.destaque?'var(--c-warning)':'var(--c-text)'}">${m.nome}${m.destaque?' ★':''}</div>
+          <div style="font-size:.73rem;color:var(--c-text-muted)">BF: ${fmtN(m.bf_beneficiarios||0)} beneficiários</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.82rem;font-weight:600;color:var(--c-info)">${fmt(m.transf_total||0)}</div>
+          <div style="width:90px;background:var(--c-border);border-radius:3px;height:4px;margin:4px 0 0 auto">
+            <div style="width:${Math.round((m.transf_total||0)/maxT*100)}%;background:var(--c-info);height:100%;border-radius:3px"></div>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`; }
+}
+
+// ── Agendamento ───────────────────────────────────────────────────────────────
+async function carregarAgendamento() {
+  const el = document.getElementById('cron-status');
+  try {
+    const r = await fetch('/api/agendamento/status');
+    const d = await r.json();
+    el.innerHTML = `
+      <div style="margin-bottom:10px">
+        <span style="font-size:1rem;font-weight:700;color:${d.ativo?'var(--c-primary)':'var(--c-text-muted)'}">${d.ativo?'Ativo':'Inativo'}</span>
+      </div>
+      ${d.crons&&d.crons.length?`<div class="cron-card">${d.crons.join('\n')}</div>`:'<div style="font-size:.83rem;color:var(--c-text-muted)">Nenhum cron instalado.</div>'}
+      ${d.ultima_execucao?`<div style="font-size:.8rem;color:var(--c-text-muted);margin-top:10px">Última execução: ${d.ultima_execucao}</div>`:''}
+      <div style="font-size:.75rem;color:var(--c-text-faint);margin-top:8px">Log: ${d.log_path||'—'}</div>`;
+  } catch(e) { el.innerHTML='<div class="loading">Erro ao verificar agendamento.</div>'; }
+}
+
+async function instalarCron() {
+  const freq  = document.getElementById('cron-freq').value;
+  const email = document.getElementById('cron-email').value;
+  const msg   = document.getElementById('cron-msg');
+  msg.innerHTML = 'Instalando...'; msg.style.color='var(--c-text-muted)';
+  try {
+    const r = await fetch('/api/agendamento/instalar', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-API-Token':token()},
+      body: JSON.stringify({frequencia:freq, email:email})
+    });
+    const d = await r.json();
+    msg.style.color = d.sucesso?'var(--c-primary)':'var(--c-danger)';
+    msg.textContent = d.mensagem||(d.sucesso?'Cron instalado!':'Erro desconhecido');
+    carregarAgendamento();
+  } catch(e) { msg.style.color='var(--c-danger)'; msg.textContent='Erro: '+e.message; }
+}
+
+async function removerCron() {
+  const msg = document.getElementById('cron-msg');
+  msg.innerHTML='Removendo...'; msg.style.color='var(--c-text-muted)';
+  try {
+    const r = await fetch('/api/agendamento/remover', {method:'POST'});
+    const d = await r.json();
+    msg.style.color='var(--c-warning)'; msg.textContent=d.mensagem||'Cron removido.';
+    carregarAgendamento();
+  } catch(e) { msg.style.color='var(--c-danger)'; msg.textContent='Erro: '+e.message; }
+}
+
+// ── Sankey — Fluxo de dinheiro (SVG puro) ────────────────────────────────────
+function renderSankey() {
+  const el = document.getElementById('sankey-container');
+  if (!_dadosTransf.length || !_dadosDesp.length) {
+    el.innerHTML='<div class="loading" style="padding:60px">Carregue os dados na aba "Dados Gerais" primeiro (token → Carregar).</div>';
+    return;
+  }
+  el.innerHTML='';
+  const W = el.clientWidth||760, H=460;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.style.background='#f8fafc';
+  el.appendChild(svg);
+
+  const fontes = {};
+  _dadosTransf.forEach(t=>{ const k=(t.acao||t.nomeFuncao||'Outras').substring(0,28); fontes[k]=(fontes[k]||0)+(t.valor||0); });
+  const destinos = {};
+  _dadosDesp.forEach(d=>{ const k=(d.nomeFuncao||d.nomeFavorecido||'Outros').substring(0,28); destinos[k]=(destinos[k]||0)+(d.valorLiquido||d.valor||0); });
+
+  const topF  = Object.entries(fontes).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const topD  = Object.entries(destinos).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const totF  = topF.reduce((s,[,v])=>s+v,0)||1;
+  const totD  = topD.reduce((s,[,v])=>s+v,0)||1;
+  const cores = ['#68d391','#90cdf4','#f6ad55','#fc8181','#b794f4','#fbd38d','#76e4f7'];
+
+  const pad=30, lW=180, cX=W/2-25, cW=50, cH=H-pad*2;
+  // Nó central (Alenquer)
+  const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',cX); rect.setAttribute('y',pad);
+  rect.setAttribute('width',cW); rect.setAttribute('height',cH);
+  rect.setAttribute('fill','#2d9e5f'); rect.setAttribute('rx',6);
+  svg.appendChild(rect);
+  const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
+  ct.setAttribute('x',cX+cW/2); ct.setAttribute('y',pad+cH/2);
+  ct.setAttribute('text-anchor','middle'); ct.setAttribute('dominant-baseline','middle');
+  ct.setAttribute('fill','#fff'); ct.setAttribute('font-size','11');
+  ct.setAttribute('transform',`rotate(-90,${cX+cW/2},${pad+cH/2})`);
+  ct.textContent='Alenquer/PA'; svg.appendChild(ct);
+
+  const rowH = cH/Math.max(topF.length,topD.length,1);
+  // Fontes (esquerda)
+  topF.forEach(([nome,val],i)=>{
+    const fy = pad+i*(cH/topF.length)+(cH/topF.length)/2;
+    const gy = pad+(val/totF*cH)/2 + topF.slice(0,i).reduce((s,[,v])=>s+v/totF*cH,0);
+    const cor=cores[i%cores.length];
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',lW-4); t.setAttribute('y',fy);
+    t.setAttribute('text-anchor','end'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('fill','#64748b'); t.setAttribute('font-size','9');
+    t.textContent=nome; svg.appendChild(t);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const x1=lW,x2=cX,sw=Math.max(2,val/totF*cH*0.85);
+    path.setAttribute('d',`M${x1},${fy} C${(x1+x2)/2},${fy} ${(x1+x2)/2},${gy} ${x2},${gy}`);
+    path.setAttribute('fill','none'); path.setAttribute('stroke',cor);
+    path.setAttribute('stroke-width',sw); path.setAttribute('opacity','0.5');
+    svg.appendChild(path);
+  });
+  // Destinos (direita)
+  topD.forEach(([nome,val],i)=>{
+    const dy = pad+i*(cH/topD.length)+(cH/topD.length)/2;
+    const gy = pad+(val/totD*cH)/2 + topD.slice(0,i).reduce((s,[,v])=>s+v/totD*cH,0);
+    const cor=cores[i%cores.length];
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',W-lW+4); t.setAttribute('y',dy);
+    t.setAttribute('text-anchor','start'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('fill','#64748b'); t.setAttribute('font-size','9');
+    t.textContent=nome; svg.appendChild(t);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    const x1=cX+cW,x2=W-lW,sw=Math.max(2,val/totD*cH*0.85);
+    path.setAttribute('d',`M${x1},${gy} C${(x1+x2)/2},${gy} ${(x1+x2)/2},${dy} ${x2},${dy}`);
+    path.setAttribute('fill','none'); path.setAttribute('stroke',cor);
+    path.setAttribute('stroke-width',sw); path.setAttribute('opacity','0.5');
+    svg.appendChild(path);
+  });
+}
+
+// ── Timeline por empresa (vis-timeline) ───────────────────────────────────────
+let _tlDados = [], _tlInst = null;
+async function renderTimeline() {
+  const el = document.getElementById('timeline-container');
+  el.innerHTML='<div class="loading is-loading">Carregando contratos...</div>';
+  try {
+    const r = await fetch('/api/monitor');
+    if (!r.ok){el.innerHTML='<div class="loading">Execute o monitor primeiro.</div>';return;}
+    _tlDados = await r.json();
+    _construirTimeline(_tlDados);
+  } catch(e){el.innerHTML=`<div class="loading">Erro: ${e.message}</div>`;}
+}
+
+function filtrarTimeline(){
+  const f=(document.getElementById('tl-filtro').value||'').toLowerCase();
+  _construirTimeline(f?_tlDados.filter(d=>(d.contrato?.nomeContratado||'').toLowerCase().includes(f)):_tlDados);
+}
+
+function _construirTimeline(dados){
+  const el=document.getElementById('timeline-container');
+  if (!dados.length){el.innerHTML='<div class="loading">Nenhum contrato para exibir.</div>';return;}
+
+  // Montar grupos (top 15 empresas por score)
+  const empMap={};
+  dados.forEach(d=>{
+    const emp=(d.contrato?.nomeContratado||'N/A');
+    if(!empMap[emp]) empMap[emp]={score:0,count:0};
+    empMap[emp].score=Math.max(empMap[emp].score,d.score||0);
+    empMap[emp].count++;
+  });
+  const topEmps=Object.entries(empMap).sort((a,b)=>b[1].score-a[1].score).slice(0,15).map(([n])=>n);
+  const grpMap={}; topEmps.forEach((n,i)=>grpMap[n]=i+1);
+
+  const groups=new vis.DataSet(topEmps.map((n,i)=>({
+    id:i+1, content:`<span style="font-size:.78rem;color:var(--c-text-muted)">${n.substring(0,22)}</span>`
+  })));
+
+  let idC=0;
+  const items=new vis.DataSet(dados
+    .filter(d=>grpMap[d.contrato?.nomeContratado||'N/A'])
+    .map(d=>{
+      const emp=d.contrato?.nomeContratado||'N/A';
+      const sc=d.score||0;
+      const cls=sc>=70?'alto':sc>=40?'medio':'baixo';
+      const dt=(d.analisado_em||'2024-01-01').substring(0,10);
+      const val=parseFloat(d.contrato?.valorInicialCompra||0);
+      return {
+        id:++idC, group:grpMap[emp],
+        start:dt, end:dt,
+        type:'point',
+        className:cls,
+        title:`Score ${sc} · ${fmt(val)}\n${(d.contrato?.objetoCompra||'').substring(0,80)}`
+      };
+    })
+  );
+
+  el.innerHTML='';
+  const opts={
+    height:'360px', stack:false, showMajorLabels:true, showMinorLabels:true,
+    orientation:'top', zoomMin:1000*60*60*24*7,
+    groupOrder:'id',
+    tooltip:{followMouse:true,overflowMethod:'cap'},
+    style:'background:var(--c-bg);'
+  };
+  if(_tlInst){_tlInst.destroy();}
+  _tlInst=new vis.Timeline(el,items,groups,opts);
+  _tlInst.on('select',props=>{
+    if(!props.items.length)return;
+    const item=items.get(props.items[0]);
+    const tip=document.getElementById('tl-detalhe');
+    tip.innerHTML=item?`${item.start} · <strong>${topEmps[item.group-1]}</strong> · ${item.title||''}`:''
+  });
+}
+
+// noticias carregadas no DOMContentLoaded principal
+</script>
+</body>
+</html>
