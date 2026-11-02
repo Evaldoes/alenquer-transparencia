@@ -1,5 +1,5 @@
 """
-Monitor de risco de corrupção — Alenquer/PA
+Monitor de indícios em contratações públicas — Alenquer/PA
 
 Funcionalidades:
   1. Score de risco por dados de CNPJ
@@ -14,6 +14,7 @@ Uso:
 
 import argparse
 import json
+import os
 import re
 import smtplib
 import time
@@ -28,8 +29,10 @@ import requests
 
 # ── Configuração ──────────────────────────────────────────────────────────────
 IBGE_ALENQUER = "1500404"
+# Lei 14.133/2021, art. 75, II, atualizado pelo Decreto 12.807/2025 (vigente em 2026)
+LIMITE_DISPENSA_COMPRAS = 65_492.11
 BASE_URL       = "https://api.portaldatransparencia.gov.br/api-de-dados"
-RESULTADO_JSON = Path(__file__).parent / "resultados_monitor.json"
+RESULTADO_JSON = Path(os.environ.get("RESULTADOS_JSON", Path(__file__).parent / "resultados_monitor.json"))
 
 PREPOSICOES = {"de", "da", "do", "das", "dos", "e", "a", "o", "em", "para"}
 
@@ -244,7 +247,7 @@ def score_cnpj(contrato, cnpj_dados, todos_contratos):
 
     if any(p in modalidade for p in ["DISPENSA", "INEXIGIB"]):
         score += 20; flags.append("Contratação sem licitação (dispensa/inexigibilidade)")
-        if valor > 57_500:
+        if valor > LIMITE_DISPENSA_COMPRAS:
             score += 20; flags.append(f"Valor acima do limite de dispensa (R$ {valor:,.0f})")
 
     if "EMERG" in modalidade:
@@ -373,7 +376,7 @@ def comparar_precos(contratos):
         valor  = float(c.get("valorInicialCompra") or c.get("valor") or 0)
         if not objeto or valor <= 0:
             continue
-        chaves = frozenset(list(_palavras_chave(objeto))[:5])
+        chaves = frozenset(sorted(_palavras_chave(objeto))[:5])
         if chaves:
             grupos[chaves].append((valor, c))
 

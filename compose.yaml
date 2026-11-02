@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:5000:5000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOST: 0.0.0.0
+      CLIENTES_LOCAIS: 172.30.0.1
+    volumes:
+      - dados:/app/dados
+    networks:
+      - rede
+
+volumes:
+  dados:
+
+networks:
+  rede:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1

@@ -166,7 +166,8 @@ def gerar_pdf(dados_bf, dados_transf, dados_desp, resultados_monitor,
 
     story.append(Paragraph(
         f"Total analisado: <b>{len(resultados_monitor)}</b> contratos  |  "
-        f"Alto risco: <b>{len(alto)}</b>  |  Médio risco: <b>{len(medio)}</b>",
+        f"Alto risco: <b>{len(alto)}</b>  |  Médio risco: <b>{len(medio)}</b> "
+        "(indícios a verificar, não irregularidades confirmadas)",
         est["corpo"],
     ))
     story.append(Spacer(1, 0.3*cm))

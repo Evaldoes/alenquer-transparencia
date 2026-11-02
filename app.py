@@ -36,7 +36,7 @@ from modules.api_publica import router as api_publica_router
 IBGE_ALENQUER = "1500404"
 BASE_URL       = "https://api.portaldatransparencia.gov.br/api-de-dados"
 ENV_FILE       = Path(__file__).parent / ".env"
-RESULTADO_JSON = Path(__file__).parent / "resultados_monitor.json"
+RESULTADO_JSON = Path(os.environ.get("RESULTADOS_JSON", Path(__file__).parent / "resultados_monitor.json"))
 DADOS_DIR      = Path(__file__).parent / "dados"
 
 app = FastAPI(title="Alenquer Transparência", docs_url=None, redoc_url=None)
@@ -68,6 +68,12 @@ def _rota_sensivel(metodo: str, caminho: str) -> bool:
     return metodo not in ("GET", "HEAD", "OPTIONS") or caminho.startswith(ROTAS_SENSIVEIS_GET)
 
 
+def _clientes_locais() -> set:
+    """Inclui o gateway do Docker, que representa a máquina local quando a porta é só local."""
+    extras = os.environ.get("CLIENTES_LOCAIS", "")
+    return HOSTS_LOCAIS | {ip.strip() for ip in extras.split(",") if ip.strip()}
+
+
 def _hostname(valor: str) -> str:
     return urlsplit(f"//{valor}").hostname or ""
 
@@ -76,7 +82,7 @@ def _acesso_local(request: Request) -> bool:
     """Aceita apenas o navegador local, barrando outros sites e DNS rebinding."""
     origem = request.headers.get("origin")
     return (
-        (request.client is not None and request.client.host in HOSTS_LOCAIS)
+        (request.client is not None and request.client.host in _clientes_locais())
         and _hostname(request.headers.get("host", "")) in HOSTS_LOCAIS
         and (origem is None or urlsplit(origem).hostname in HOSTS_LOCAIS)
     )

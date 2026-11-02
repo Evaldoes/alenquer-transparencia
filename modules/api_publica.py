@@ -6,12 +6,13 @@ import re
 import time
 from collections import defaultdict
 from datetime import datetime
+import os
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-RESULTADO_JSON = Path(__file__).parent.parent / "resultados_monitor.json"
+RESULTADO_JSON = Path(os.environ.get("RESULTADOS_JSON", Path(__file__).parent.parent / "resultados_monitor.json"))
 
 router = APIRouter(prefix="/v1", tags=["público"])
 
