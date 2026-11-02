@@ -141,7 +141,7 @@ rodar_dashboard() {
   info "Iniciando dashboard em http://localhost:5000 ..."
   echo -e "${CINZA}  Pressione Ctrl+C para parar.${RESET}\n"
   cd "$DIR"
-  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host 0.0.0.0 --port 5000
+  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host "${HOST:-127.0.0.1}" --port 5000
 }
 
 atualizar_noticias() {
@@ -278,7 +278,7 @@ PYEOF
   echo -e "${VERDE}  Acesse: http://localhost:5000${RESET}"
   echo -e "${CINZA}  Ctrl+C para parar.${RESET}\n"
   pkill -f "uvicorn.*app:app" 2>/dev/null && sleep 1 || true
-  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host 0.0.0.0 --port 5000
+  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host "${HOST:-127.0.0.1}" --port 5000
 }
 
 atualizar_noticias_doe() {
@@ -309,7 +309,7 @@ exportar_excel() {
   fi
   # Inicia Flask em background, exporta, encerra
   pkill -f "uvicorn.*app:app" 2>/dev/null && sleep 1 || true
-  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host 0.0.0.0 --port 5000 &
+  PYTHONWARNINGS=ignore "$VENV" -m uvicorn app:app --host "${HOST:-127.0.0.1}" --port 5000 &
   FLASK_PID=$!
   sleep 2
   curl -s "http://localhost:5000/api/exportar/excel" \
