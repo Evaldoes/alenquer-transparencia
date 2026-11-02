@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/Evaldoes/alenquer-transparencia/actions/workflows/ci.yml/badge.svg)](https://github.com/Evaldoes/alenquer-transparencia/actions/workflows/ci.yml)
 
-Monitor de fiscalização pública para o município de Alenquer/PA. Cruza dados do Portal da Transparência Federal com fontes abertas (PNCP, CNPJ, CEIS/CNEP, TSE, CNJ, IBGE) e exibe um dashboard web local.
+Monitor de fiscalização pública para o município de Alenquer/PA. Ele aponta indícios para verificação, não irregularidades confirmadas: veja a [metodologia](METODOLOGIA.md). Cruza dados do Portal da Transparência Federal com fontes abertas (PNCP, CNPJ, CEIS/CNEP, TSE, CNJ, IBGE) e exibe um dashboard web local.
 
 ## Funcionalidades
 
 - **Benefícios sociais** — Bolsa Família, BPC e Seguro Defeso (12 meses)
 - **Convênios federais** — execução por ministério, situação e ano
-- **Monitor de risco** — score de irregularidade por contrato (CNPJ, sanções, sobrepreço)
+- **Monitor de risco** — score de indícios por contrato (CNPJ, sanções, sobrepreço)
 - **Copy-paste e semântico** — detecta contratos com texto idêntico ou paráfrases entre empresas
 - **PNCP** — contratações públicas mais recentes sem precisar de token
 - **TSE** — cruza doadores de campanha com empresas contratadas
@@ -25,6 +25,16 @@ Monitor de fiscalização pública para o município de Alenquer/PA. Cruza dados
 
 - Python 3.10+
 - Token gratuito do Portal da Transparência: [portaldatransparencia.gov.br/api-de-dados](https://portaldatransparencia.gov.br/api-de-dados)
+
+## Docker
+
+```bash
+cp .env.example .env   # preencha PORTAL_TOKEN
+docker compose up --build
+docker compose exec app sh -c 'python monitor.py --token "$PORTAL_TOKEN"'   # em outro terminal: gera a análise
+```
+
+O painel fica em <http://localhost:5000>, acessível só pela própria máquina, e os dados ficam em um volume. O agendamento via cron não funciona dentro do contêiner.
 
 ## Instalação
 

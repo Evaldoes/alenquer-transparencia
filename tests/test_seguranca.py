@@ -71,3 +71,14 @@ def test_download_nao_entrega_banco(local, tmp_path):
 def test_servidor_usa_localhost_por_padrao():
     import app as app_module
     assert app_module.host_padrao({}) == "127.0.0.1"
+
+
+def test_gateway_do_docker_e_aceito_somente_se_configurado(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import app as app_module
+    cliente = TestClient(app_module.app, base_url="http://localhost:5000",
+                         client=("172.30.0.1", 5555))
+    assert cliente.get("/api/token").status_code == 403
+    monkeypatch.setenv("CLIENTES_LOCAIS", "172.30.0.1")
+    assert cliente.get("/api/token").status_code == 200
