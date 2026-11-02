@@ -56,7 +56,7 @@ def test_endereco_residencial():
     assert monitor.score_cnpj({}, dados, [])[0] == 15
 
 
-@pytest.mark.parametrize(("valor", "pontos"), [(57_500, 20), (57_501, 40)])
+@pytest.mark.parametrize(("valor", "pontos"), [(65_492.11, 20), (65_492.12, 40)])
 def test_dispensa_de_licitacao(valor, pontos):
     contrato = {"modalidadeCompra": "Dispensa", "valorInicialCompra": valor}
     assert monitor.score_cnpj(contrato, None, [])[0] == pontos
@@ -119,3 +119,11 @@ def test_score_convenio_tem_teto_de_60():
 ])
 def test_nivel_de_risco(score, nivel):
     assert monitor._nivel(score)[0] == nivel
+
+
+def test_grupos_de_preco_nao_dependem_da_ordem_das_palavras():
+    contratos = [
+        {"objetoCompra": "alfa bravo charlie delta echo foxtrot", "valor": 100, "cnpjContratado": "1"},
+        {"objetoCompra": "foxtrot echo delta charlie bravo alfa", "valor": 300, "cnpjContratado": "2"},
+    ]
+    assert monitor.comparar_precos(contratos)["2"][0]["desvio_pct"] == 50
