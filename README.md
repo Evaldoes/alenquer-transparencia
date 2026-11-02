@@ -4,6 +4,8 @@
 
 Monitor de fiscalização pública para o município de Alenquer/PA. Ele aponta indícios para verificação, não irregularidades confirmadas: veja a [metodologia](METODOLOGIA.md). Cruza dados do Portal da Transparência Federal com fontes abertas (PNCP, CNPJ, CEIS/CNEP, TSE, CNJ, IBGE) e exibe um dashboard web local.
 
+**[Abrir a demonstração](https://evaldoes.github.io/alenquer-transparencia/)**, com dados fictícios e sem servidor.
+
 ![Monitor com dados fictícios](docs/monitor.png)
 
 *Captura com dados fictícios: as empresas e os valores não existem.*
@@ -157,6 +159,10 @@ Rate limit: 60 req/min por IP.
 O dashboard foi feito para uso local e, por padrão, só aceita conexões da própria máquina.
 
 As rotas administrativas (token, denúncias, agendamento, downloads e ações `POST`) só respondem ao navegador local ou a quem enviar o cabeçalho `X-Admin-Token`. Só exponha o servidor na rede com `ADMIN_TOKEN` definido e atrás de HTTPS; nesse modo, o painel web não envia esse cabeçalho.
+
+## Demonstração
+
+A página em `docs/index.html` é gerada com `python scripts/gerar_demo.py` a partir do painel e de `demo/demo.js`. Ela não acessa APIs, e os testes verificam se está atualizada.
 
 ## Testes
 
