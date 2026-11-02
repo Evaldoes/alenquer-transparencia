@@ -3,7 +3,6 @@ Diário Oficial do Estado do Pará — monitoramento de publicações sobre Alen
 Fonte: IOEPA (Imprensa Oficial do Estado do Pará) — ioepa.com.br
        e DOE federal via imprensanacional.gov.br (DOU)
 """
-import re
 import time
 from datetime import datetime, timedelta
 

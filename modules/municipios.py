@@ -1,7 +1,6 @@
 """
 Comparação de Alenquer com municípios vizinhos do Pará.
 """
-import re
 import time
 
 import requests

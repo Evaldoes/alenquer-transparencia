@@ -1,7 +1,6 @@
 """
 Agregador de notícias — Google News RSS + fontes locais.
 """
-import time
 import warnings
 from datetime import datetime
 from email.utils import parsedate_to_datetime

@@ -5,9 +5,7 @@ Extrai texto de PDFs escaneados para análise no monitor de risco.
 Dependências: pytesseract, pdf2image, pillow
 Sistema: tesseract-ocr (apt install tesseract-ocr tesseract-ocr-por)
 """
-import io
 import re
-import tempfile
 from pathlib import Path
 
 DADOS_DIR = Path(__file__).parent.parent / "dados" / "pdfs_ocr"
@@ -36,7 +34,6 @@ def extrair_texto_pdf(pdf_bytes, idioma="por"):
 
     import pytesseract
     from pdf2image import convert_from_bytes
-    from PIL import Image
 
     try:
         imagens  = convert_from_bytes(pdf_bytes, dpi=200)
