@@ -6,13 +6,13 @@
   <title>Transparência — Alenquer/PA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css"/>
-  <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/vis-network@10.1.4/standalone/umd/vis-network.min.js" integrity="sha384-s5qRgSwXYyGRFMyysTjQ6HHeKJIuO9uEi4yIC8DaDDLggONJZWE/CydMFXSh/04I" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@1.66.0/dist/umd/lucide.min.js" integrity="sha384-Z6lHbMYcsXeWgvgnOFekAhjBtVQuTfjyNBGb7d7mrYjt5DNJspJJ9GBp9Kar/z7w" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://unpkg.com/vis-timeline@7.7.3/styles/vis-timeline-graph2d.min.css" integrity="sha384-N/4l0y8PNlO5uZuzP9PK3bAgJQ8ZChybZFXB2mpkZRUil/bui++mvYXPzPAHpbr6" crossorigin="anonymous"/>
+  <script src="https://unpkg.com/vis-timeline@7.7.3/standalone/umd/vis-timeline-graph2d.min.js" integrity="sha384-MLX+7yEEPNEznaIWwQi2pBMODSBP6Qo6BOVpzjFWB0UkfEzEYsvHOo7ISLfcQeiI" crossorigin="anonymous"></script>
   <style>
     /* ── Design Tokens ──────────────────────────────────────────────────────── */
     :root {
@@ -686,7 +686,7 @@
     <div class="card"><div class="label">Última Análise</div><div class="valor" id="mon-data" style="color:var(--c-text-muted);font-size:.9rem">—</div></div>
   </div>
   <div class="panel" style="margin-bottom:18px"><h2>Histórico de Análises</h2><canvas id="chart-historico" height="120"></canvas></div>
-    <p style="font-size:.85rem;color:var(--c-text-muted);margin:0 0 8px">O score indica pontos a verificar, não comprova irregularidade. <a href="https://github.com/Evaldoes/alenquer-transparencia/blob/main/METODOLOGIA.md" target="_blank" rel="noopener">Ver metodologia</a>.</p>
+    <p style="font-size:.85rem;color:var(--c-text-muted);margin:0 0 8px">O score indica pontos a verificar, não comprova irregularidade. <a href="https://github.com/Evaldoes/alenquer-transparencia/blob/main/METODOLOGIA.md" target="_blank" rel="noopener" style="text-decoration:underline">Ver metodologia</a>.</p>
   <div id="lista-risco"><div class="loading is-loading">Carregando...</div></div>
 </div>
 

@@ -4,6 +4,31 @@
 
 Monitor de fiscalização pública para o município de Alenquer/PA. Ele aponta indícios para verificação, não irregularidades confirmadas: veja a [metodologia](METODOLOGIA.md). Cruza dados do Portal da Transparência Federal com fontes abertas (PNCP, CNPJ, CEIS/CNEP, TSE, CNJ, IBGE) e exibe um dashboard web local.
 
+![Monitor com dados fictícios](docs/monitor.png)
+
+*Captura com dados fictícios: as empresas e os valores não existem.*
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    F["Fontes públicas<br/>Portal da Transparência, PNCP, CNPJ, TSE, CNJ"] --> M["monitor.py<br/>coleta e score"]
+    M --> J[("resultados_monitor.json")]
+    M --> DB[("SQLite<br/>histórico")]
+    J --> A["app.py<br/>FastAPI"]
+    DB --> A
+    F -->|consultas sob demanda| A
+    A --> P["Painel web<br/>uso local"]
+    A --> V["API pública /v1<br/>somente leitura"]
+```
+
+## Decisões técnicas
+
+- **Uso local por padrão:** o painel guarda denúncias e usa credenciais, então só aceita a própria máquina. A exposição em rede é uma escolha explícita, com `ADMIN_TOKEN`.
+- **SQLite e JSON em vez de um banco servidor:** o volume de dados de um município é pequeno, e o projeto roda sem infraestrutura.
+- **Score por regras em vez de só IA:** cada ponto pode ser explicado e contestado, como mostra a [metodologia](METODOLOGIA.md). A IA é opcional e não altera o score.
+- **Testes sem rede:** a lógica do score e as regras de acesso rodam sem APIs externas nem credenciais.
+
 ## Funcionalidades
 
 - **Benefícios sociais** — Bolsa Família, BPC e Seguro Defeso (12 meses)
