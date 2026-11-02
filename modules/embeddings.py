@@ -55,8 +55,7 @@ def gerar_embedding(texto, api_key):
     client = _get_client(api_key)
     # Anthropic usa o modelo Voyage para embeddings
     try:
-        import anthropic
-        r = client.beta.messages.count_tokens(
+        client.beta.messages.count_tokens(
             model="claude-haiku-4-5-20251001",
             messages=[{"role": "user", "content": texto}],
         )

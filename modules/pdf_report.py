@@ -94,7 +94,7 @@ def gerar_pdf(dados_bf, dados_transf, dados_desp, resultados_monitor,
 
     # ── Cabeçalho ──────────────────────────────────────────────────────────
     story += [
-        Paragraph(f"Boletim de Transparência", est["titulo"]),
+        Paragraph("Boletim de Transparência", est["titulo"]),
         Paragraph(f"{municipio} — {mes_ref}", est["subtitulo"]),
         HRFlowable(width="100%", thickness=2, color=VERDE_CLARO),
         Spacer(1, 0.4*cm),
@@ -109,7 +109,6 @@ def gerar_pdf(dados_bf, dados_transf, dados_desp, resultados_monitor,
     # ── Bolsa Família ──────────────────────────────────────────────────────
     story.append(Paragraph("Bolsa Família", est["secao"]))
     if dados_bf:
-        ultimo = dados_bf[-1]
         tabela_bf = [["Mês", "Beneficiários", "Valor Total"]]
         for d in dados_bf[-6:]:
             tabela_bf.append([

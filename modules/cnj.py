@@ -4,7 +4,6 @@ Usa o Datajud (API pública do CNJ) e o Escavador como fallback.
 """
 import re
 import time
-from datetime import datetime
 
 import requests
 

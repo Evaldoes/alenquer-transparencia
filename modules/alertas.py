@@ -1,7 +1,6 @@
 """
 Alertas automáticos — e-mail e WhatsApp (via Evolution API ou Twilio).
 """
-import json
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -30,12 +29,12 @@ def alerta_risco_email(resultados, destino, remetente, senha):
         return
 
     linhas = [
-        f"⚠️ Monitor de Transparência — Alenquer/PA",
+        "⚠️ Monitor de Transparência — Alenquer/PA",
         f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        f"",
+        "",
         f"🔴 Alto risco: {len(alto)} contrato(s)",
         f"🟡 Médio risco: {len(medio)} contrato(s)",
-        f"",
+        "",
     ]
     for r in sorted(alto + medio, key=lambda x: x["score"], reverse=True)[:5]:
         c     = r.get("contrato", {})
@@ -99,12 +98,12 @@ def mensagem_alerta_whatsapp(resultados):
     data  = datetime.now().strftime("%d/%m/%Y")
 
     linhas = [
-        f"📊 *Monitor Transparência — Alenquer/PA*",
+        "📊 *Monitor Transparência — Alenquer/PA*",
         f"_{data}_",
-        f"",
+        "",
         f"🔴 Alto risco: *{len(alto)}* contrato(s)",
         f"🟡 Médio risco: *{len(medio)}* contrato(s)",
-        f"",
+        "",
     ]
     for r in sorted(alto, key=lambda x: x["score"], reverse=True)[:3]:
         c = r.get("contrato", {})

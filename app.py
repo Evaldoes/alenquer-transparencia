@@ -1,3 +1,4 @@
+import hmac
 import json
 import os
 import re
@@ -7,9 +8,10 @@ warnings.filterwarnings("ignore", message="chardet.*doesn't match", category=War
 import requests
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Header, Query, Request, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional, List
@@ -20,7 +22,7 @@ from modules.noticias import buscar_todas as buscar_noticias
 from modules.municipios import comparar_municipios
 from modules.copypaste import detectar_grupos_similares
 from modules.pncp import buscar_contratacoes, analisar_pncp, normalizar_contratacao
-from modules.score_empresa import registrar_scores, ranking_empresas, empresas_em_alta, resumo_empresas
+from modules.score_empresa import ranking_empresas, empresas_em_alta, resumo_empresas
 from modules.exportar import exportar_csv, exportar_excel
 from modules.tse import cruzar_doadores_contratos, resumo_tse
 from modules.cnj import analisar_processos_monitor
@@ -28,16 +30,72 @@ from modules.siops import analisar_saude, historico_saude
 from modules.caged import analisar_mercado_trabalho
 from modules.embeddings import detectar_similares_semanticos
 from modules.benchmark import benchmark_municipios, resumo_posicao
-from modules.agendamento import instalar_cron, remover_cron, listar_crons, status as status_cron
+from modules.agendamento import instalar_cron, remover_cron, status as status_cron
 from modules.api_publica import router as api_publica_router
 
 IBGE_ALENQUER = "1500404"
 BASE_URL       = "https://api.portaldatransparencia.gov.br/api-de-dados"
+ENV_FILE       = Path(__file__).parent / ".env"
 RESULTADO_JSON = Path(__file__).parent / "resultados_monitor.json"
 DADOS_DIR      = Path(__file__).parent / "dados"
 
 app = FastAPI(title="Alenquer Transparência", docs_url=None, redoc_url=None)
 app.include_router(api_publica_router)
+
+HOSTS_LOCAIS = {"localhost", "127.0.0.1", "::1"}
+ROTAS_SENSIVEIS_GET = ("/api/token", "/api/denuncias", "/api/agendamento/status",
+                       "/api/pdf/download/")
+
+
+def host_padrao(ambiente: dict) -> str:
+    return ambiente.get("HOST", "127.0.0.1")
+
+
+def _ler_config(nome: str) -> str:
+    """Lê uma variável do ambiente ou, se ela não existir, do arquivo .env."""
+    valor = os.environ.get(nome, "")
+    if valor or not ENV_FILE.exists():
+        return valor
+    for linha in ENV_FILE.read_text().splitlines():
+        if linha.startswith(f"{nome}="):
+            return linha.split("=", 1)[1].strip().strip('"').strip("'")
+    return ""
+
+
+def _rota_sensivel(metodo: str, caminho: str) -> bool:
+    if not caminho.startswith("/api/"):
+        return False
+    return metodo not in ("GET", "HEAD", "OPTIONS") or caminho.startswith(ROTAS_SENSIVEIS_GET)
+
+
+def _hostname(valor: str) -> str:
+    return urlsplit(f"//{valor}").hostname or ""
+
+
+def _acesso_local(request: Request) -> bool:
+    """Aceita apenas o navegador local, barrando outros sites e DNS rebinding."""
+    origem = request.headers.get("origin")
+    return (
+        (request.client is not None and request.client.host in HOSTS_LOCAIS)
+        and _hostname(request.headers.get("host", "")) in HOSTS_LOCAIS
+        and (origem is None or urlsplit(origem).hostname in HOSTS_LOCAIS)
+    )
+
+
+def _token_admin_valido(request: Request) -> bool:
+    esperado = _ler_config("ADMIN_TOKEN")
+    recebido = request.headers.get("x-admin-token", "")
+    return bool(esperado) and hmac.compare_digest(esperado.encode(), recebido.encode())
+
+
+@app.middleware("http")
+async def proteger_rotas_sensiveis(request: Request, call_next):
+    if _rota_sensivel(request.method, request.url.path) and not (
+        _acesso_local(request) or _token_admin_valido(request)
+    ):
+        return JSONResponse({"detail": "Acesso restrito."}, status_code=403)
+    return await call_next(request)
+
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
@@ -114,19 +172,8 @@ def index(request: Request):
 
 @app.get("/api/token")
 def get_token():
-    env_file = Path(__file__).parent / ".env"
-    tk = ""
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            if line.startswith("PORTAL_TOKEN="):
-                tk = line.split("=", 1)[1].strip().strip('"').strip("'")
-                break
-    if not tk:
-        tk = os.environ.get("PORTAL_TOKEN", "")
-    return {"token": tk}
+    return {"token": _ler_config("PORTAL_TOKEN")}
 
-
-# ── Bolsa Família ─────────────────────────────────────────────────────────────
 
 @app.get("/api/bolsa-familia")
 def bolsa_familia(x_api_token: str = Header(default="", alias="x-api-token")):
@@ -471,7 +518,7 @@ def gerar_pdf(body: PdfRequest):
 @app.get("/api/pdf/download/{nome}")
 def download_pdf(nome: str):
     caminho = DADOS_DIR / nome
-    if not caminho.exists():
+    if caminho.suffix.lower() != ".pdf" or not caminho.is_file():
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
     return FileResponse(str(caminho), filename=nome)
 
@@ -723,4 +770,4 @@ def agendamento_remover():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=False)
+    uvicorn.run("app:app", host=host_padrao(os.environ), port=5000, reload=False)

@@ -1,7 +1,6 @@
 """
 Agendamento automático — configura cron jobs para o monitor rodar sem intervenção.
 """
-import os
 import subprocess
 from pathlib import Path
 
@@ -72,13 +71,17 @@ def instalar_cron(frequencia="semanal", email=None, token=None):
     return linha, "Cron instalado com sucesso."
 
 
+def _sem_jobs_do_monitor(crontab):
+    """Remove só os jobs deste projeto, preservando os de outros monitor.py."""
+    return [linha for linha in crontab.splitlines() if str(DIR / "monitor.py") not in linha]
+
+
 def remover_cron():
     """Remove todos os cron jobs do monitor."""
     try:
         atual = subprocess.run(["crontab", "-l"],
                                capture_output=True, text=True).stdout
-        linhas = [l for l in atual.splitlines()
-                  if "monitor.py" not in l]
+        linhas = _sem_jobs_do_monitor(atual)
         subprocess.run(["crontab", "-"],
                        input="\n".join(linhas) + "\n", text=True)
         return "Cron removido."

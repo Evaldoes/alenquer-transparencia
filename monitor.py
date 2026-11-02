@@ -22,7 +22,7 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from statistics import mean, stdev
+from statistics import mean
 
 import requests
 
@@ -279,7 +279,7 @@ def score_convenio(contrato):
         flags.append(f"Convênio em situação de INADIMPLÊNCIA ({situacao})")
     elif "INADIMPL" in situacao and "SUSPENS" in situacao:
         score += 25
-        flags.append(f"Inadimplência suspensa (monitoramento necessário)")
+        flags.append("Inadimplência suspensa (monitoramento necessário)")
     elif "REJEITADA" in situacao:
         score += 40
         flags.append("Prestação de contas REJEITADA pelo governo federal")
@@ -383,7 +383,6 @@ def comparar_precos(contratos):
             continue
         valores = [v for v, _ in itens]
         media   = mean(valores)
-        dp      = stdev(valores) if len(valores) > 1 else 0
         for valor, contrato in itens:
             cnpj = str(contrato.get("cnpjContratado") or "")
             if not cnpj:
@@ -407,7 +406,6 @@ def comparar_precos(contratos):
 
 def analisar_contrato(contrato, token, servidores, precos_ref, todos_contratos):
     cnpj      = str(contrato.get("cnpjContratado") or "")
-    empresa   = str(contrato.get("nomeContratado") or "?")
     fonte     = contrato.get("_fonte", "")
 
     # Dados do CNPJ (pula para convênios — o CNPJ é o ministério federal)

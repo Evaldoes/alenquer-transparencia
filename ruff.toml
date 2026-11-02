@@ -1,0 +1,8 @@
+target-version = "py312"
+line-length = 110
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+"modules/ocr.py" = ["F401"]  # imports usados para detectar dependências opcionais

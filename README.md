@@ -1,5 +1,7 @@
 # Alenquer Transparência
 
+[![CI](https://github.com/Evaldoes/alenquer-transparencia/actions/workflows/ci.yml/badge.svg)](https://github.com/Evaldoes/alenquer-transparencia/actions/workflows/ci.yml)
+
 Monitor de fiscalização pública para o município de Alenquer/PA. Cruza dados do Portal da Transparência Federal com fontes abertas (PNCP, CNPJ, CEIS/CNEP, TSE, CNJ, IBGE) e exibe um dashboard web local.
 
 ## Funcionalidades
@@ -27,7 +29,7 @@ Monitor de fiscalização pública para o município de Alenquer/PA. Cruza dados
 ## Instalação
 
 ```bash
-git clone https://github.com/seu-usuario/alenquer-transparencia.git
+git clone https://github.com/Evaldoes/alenquer-transparencia.git
 cd alenquer-transparencia
 
 # Copiar e preencher as variáveis de ambiente
@@ -112,6 +114,24 @@ Rate limit: 60 req/min por IP.
 | `EMAIL_DESTINO` | Não | E-mail para receber alertas |
 | `EMAIL_REMETENTE` | Não | E-mail remetente (Gmail) |
 | `EMAIL_SENHA` | Não | Senha de app do Gmail |
+| `HOST` | Não | Endereço do servidor (padrão: `127.0.0.1`) |
+| `ADMIN_TOKEN` | Não | Libera rotas administrativas fora da máquina local |
+
+## Segurança
+
+O dashboard foi feito para uso local e, por padrão, só aceita conexões da própria máquina.
+
+As rotas administrativas (token, denúncias, agendamento, downloads e ações `POST`) só respondem ao navegador local ou a quem enviar o cabeçalho `X-Admin-Token`. Só exponha o servidor na rede com `ADMIN_TOKEN` definido e atrás de HTTPS; nesse modo, o painel web não envia esse cabeçalho.
+
+## Testes
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+Os testes não chamam APIs externas nem usam credenciais reais.
 
 ## Fontes de dados
 

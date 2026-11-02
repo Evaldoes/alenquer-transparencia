@@ -2,9 +2,7 @@
 Rede de empresas relacionadas — detecta vínculos ocultos entre fornecedores.
 Usa networkx para construir o grafo e exporta JSON para visualização no browser.
 """
-import json
 import re
-from collections import defaultdict
 
 import networkx as nx
 
@@ -25,7 +23,6 @@ def construir_grafo(resultados_monitor):
 
     # Indexar sócios e endereços para encontrar sobreposições
     socios_por_empresa    = {}   # cnpj → set(nomes de sócios)
-    endereco_por_empresa  = {}   # cnpj → endereço normalizado
     empresas              = {}   # cnpj → dados
 
     for r in resultados_monitor:

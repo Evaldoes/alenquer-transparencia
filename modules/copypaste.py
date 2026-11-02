@@ -123,9 +123,6 @@ def score_copypaste(contrato, pares_suspeitos):
     maior_sim = max(p["similaridade"] for p in pares_deste)
     parceiros = set()
     for p in pares_deste:
-        cnpj_outro = str(p["contrato_a"].get("cnpjContratado") or "") \
-            if str(p["contrato_b"].get("cnpjContratado") or "") == cnpj \
-            else str(p["contrato_b"].get("cnpjContratado") or "")
         nome_outro = str(p["contrato_a"].get("nomeContratado") or "") \
             if str(p["contrato_b"].get("nomeContratado") or "") != cnpj \
             else str(p["contrato_b"].get("nomeContratado") or "")

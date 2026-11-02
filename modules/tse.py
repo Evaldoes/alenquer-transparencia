@@ -8,9 +8,7 @@ Fontes:
 """
 import io
 import re
-import time
 import zipfile
-from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -89,7 +87,6 @@ def _parse_receitas(csv_text, municipio="ALENQUER"):
     i_valor  = idx("valor_receita")
     i_cand   = idx("nome_candidato")
     i_cargo  = idx("descricao_cargo")
-    i_seq    = idx("sequencial_candidato")
 
     doacoes = []
     for linha in linhas[1:]:

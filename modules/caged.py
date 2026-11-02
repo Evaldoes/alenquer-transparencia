@@ -9,7 +9,6 @@ Fontes:
 """
 import re
 import time
-from datetime import datetime
 
 import requests
 
